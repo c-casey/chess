@@ -11,10 +11,12 @@ end
 
 class Piece
   attr_accessor :location
+  attr_reader :move_list
 
-  def initialize(start_square, colour)
+  def initialize(start_square, colour, move_list)
     @location = start_square
     @colour = colour
+    @move_list = move_list
   end
 end
 
@@ -22,49 +24,51 @@ class Rook < Piece
   def valid_moves
     search_up +
       search_down +
-      searh_left +
+      search_left +
       search_right
   end
 
-  def search_up(board, coords = location, results = [])
-    dest_coords = [coords[0], coords[1] + 1]
+  private
+
+  def search_up
+    search_lambda = ->(a, b) { [a, b + 1] }
+    move_list.search(location, search_lambda)
+  end
+
+  def search_down
+    search_lambda = ->(a, b) { [a, b - 1] }
+    move_list.search(location, search_lambda)
+  end
+
+  def search_left
+    search_lambda = ->(a, b) { [a - 1, b] }
+    move_list.search(location, search_lambda)
+  end
+
+  def search_right
+    search_lambda = ->(a, b) { [a + 1, b] }
+    move_list.search(location, search_lambda)
+  end
+end
+
+class MoveList
+  attr_reader :board
+
+  def initialize(board)
+    @board = board
+  end
+
+  def search(coords, search_lambda, results = [])
+    dest_coords = search_lambda.call(coords[0], coords[1])
     if traversible_space?(dest_coords, board)
       results << dest_coords
-      search_up(board, dest_coords, results)
+      search(dest_coords, search_lambda, results)
     else
       results
     end
   end
 
-  def search_down(board, coords = location, results = [])
-    dest_coords = [coords[0], coords[1] - 1]
-    if traversible_space?(dest_coords, board)
-      results << dest_coords
-      search_down(board, dest_coords, results)
-    else
-      results
-    end
-  end
-
-  def search_left(board, coords = location, results = [])
-    dest_coords = [coords[0] - 1, coords[1]]
-    if traversible_space?(dest_coords, board)
-      results << dest_coords
-      search_left(board, dest_coords, results)
-    else
-      results
-    end
-  end
-
-  def search_right(board, coords = location, results = [])
-    dest_coords = [coords[0] + 1, coords[1]]
-    if traversible_space?(dest_coords, board)
-      results << dest_coords
-      search_right(board, dest_coords, results)
-    else
-      results
-    end
-  end
+  private
 
   def traversible_space?(dest_coords, board)
     destination = board.state.dig(*dest_coords)
