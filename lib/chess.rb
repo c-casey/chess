@@ -9,6 +9,29 @@ class Board
   end
 end
 
+class BoardSetup
+  attr_accessor :board
+  attr_reader :move_list
+
+  def initialize(board, move_list)
+    @board = board
+    @move_list = move_list
+  end
+
+  def distribute_pieces
+    distribute_pawns(:white)
+    distribute_pawns(:black)
+  end
+
+  def distribute_pawns(colour)
+    starting_rank = colour.eql?(:white) ? 1 : 6
+    0.upto(7) do |file|
+      pawn = Pawn.new([file, starting_rank], colour, move_list)
+      board.state[file][starting_rank] = pawn
+    end
+  end
+end
+
 class Piece
   attr_accessor :location
   attr_reader :move_list, :colour

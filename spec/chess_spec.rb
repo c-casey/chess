@@ -3,6 +3,26 @@
 
 require_relative "../lib/chess.rb"
 
+describe BoardSetup do
+  let(:board) { Board.new }
+  let(:move_list) { MoveList.new(board) }
+  subject(:setup) { described_class.new(board, move_list) }
+
+  describe "#distribute_pawns" do
+    it "distributes white pawns" do
+      setup.distribute_pawns(:white)
+      results = (0..7).map { |n| board.state[n][1] }
+      expect(results).to all(be_an_instance_of(Pawn))
+    end
+
+    it "distributes black pawns" do
+      setup.distribute_pawns(:black)
+      results = (0..7).map { |n| board.state[n][6] }
+      expect(results).to all(be_an_instance_of(Pawn))
+    end
+  end
+end
+
 describe King do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
