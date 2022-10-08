@@ -23,7 +23,7 @@ end
 class Rook < Piece
   def valid_moves
     directions = [up, down, left, right]
-    directions.flat_map { |n| search(n) }
+    directions.flat_map { |d| search(d) }
   end
 
   private
@@ -52,7 +52,7 @@ end
 class Bishop < Piece
   def valid_moves
     directions = [up_left, up_right, down_left, down_right]
-    directions.flat_map { |n| search(n) }
+    directions.flat_map { |d| search(d) }
   end
 
   private
@@ -78,6 +78,43 @@ class Bishop < Piece
   end
 end
 
+class Pawn < Piece
+  attr_accessor :moved
+
+  def initialize(location, colour, move_list)
+    super
+    @moved = false
+  end
+
+  def valid_moves
+    search(advance_colour)
+  end
+
+  private
+
+  def advance_colour
+    case colour
+    when :white
+      advance_white
+    when :black
+      advance_black
+    end
+  end
+
+  def advance_white
+    ->(a, b) { [a, b + 1] }
+  end
+
+  def advance_black
+    ->(a, b) { [a, b - 1] }
+  end
+
+  def search(transformer)
+    move_count = moved ? 1 : 2
+    move_list.search(location, transformer, stop_counter: move_count)
+  end
+end
+
 class MoveList
   attr_reader :board
 
@@ -85,11 +122,13 @@ class MoveList
     @board = board
   end
 
-  def search(coords, search_lambda, results = [])
+  def search(coords, search_lambda, results = [], stop_counter: nil)
+    return results if stop_counter&.zero?
+
     dest_coords = search_lambda.call(coords[0], coords[1])
     if traversible_space?(dest_coords)
       results << dest_coords
-      search(dest_coords, search_lambda, results)
+      search(dest_coords, search_lambda, results, stop_counter: stop_counter&.pred)
     else
       results
     end
