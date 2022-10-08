@@ -46,6 +46,78 @@ describe Bishop do
   end
 end
 
+describe Pawn do
+  let(:piece) { instance_double("Piece") }
+  let(:board) { Board.new }
+  let(:move_list) { MoveList.new(board) }
+
+  describe "#valid_moves" do
+    context "when white Pawn hasn't moved yet" do
+      subject(:pawn) { described_class.new([0, 1], :white, move_list) }
+
+      context "when free to move" do
+        it "returns two legal moves" do
+          legal_moves = [[0, 2], [0, 3]]
+          result = pawn.valid_moves.sort
+          expect(result).to eql(legal_moves)
+        end
+      end
+
+      context "when blocked by a piece 2 squares away" do
+        before do
+          board.state[0][3] = piece
+        end
+
+        it "returns one legal move" do
+          legal_moves = [[0, 2]]
+          result = pawn.valid_moves.sort
+          expect(result).to eql(legal_moves)
+        end
+      end
+
+      context "when blocked by a piece 1 square away" do
+        before do
+          board.state[0][2] = piece
+        end
+
+        it "returns no legal moves" do
+          legal_moves = []
+          result = pawn.valid_moves.sort
+          expect(result).to eql(legal_moves)
+        end
+      end
+    end
+
+    context "when black Pawn has already moved" do
+      subject(:pawn) { described_class.new([0, 7], :black, move_list) }
+
+      before do
+        pawn.moved = true
+      end
+
+      context "when free to move" do
+        it "returns one legal move" do
+          legal_moves = [[0, 6]]
+          result = pawn.valid_moves.sort
+          expect(result).to eql(legal_moves)
+        end
+      end
+
+      context "when blocked by a piece" do
+        before do
+          board.state[0][6] = piece
+        end
+
+        it "returns no legal moves" do
+          legal_moves = []
+          result = pawn.valid_moves.sort
+          expect(result).to eql(legal_moves)
+        end
+      end
+    end
+  end
+end
+
 describe MoveList do
   let(:board) { Board.new }
   subject(:move_list) { described_class.new(board) }
