@@ -87,6 +87,26 @@ describe Bishop do
   end
 end
 
+describe Knight do
+  let(:piece) { instance_double("Piece") }
+  let(:board) { Board.new }
+  let(:move_list) { MoveList.new(board) }
+  subject(:knight) { described_class.new([4, 4], :white, move_list) }
+
+  describe "#valid_moves" do
+    before do
+      board.state[3][6] = piece
+      board.state[2][3] = piece
+    end
+
+    it "returns all legal movements for a given position" do
+      legal_moves = [[2, 5], [3, 2], [5, 2], [5, 6], [6, 3], [6, 5]]
+      result = knight.valid_moves
+      expect(result).to eql(legal_moves)
+    end
+  end
+end
+
 describe Pawn do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }

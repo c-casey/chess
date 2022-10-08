@@ -169,6 +169,52 @@ class Bishop < Piece
   end
 end
 
+class Knight < Piece
+  def valid_moves
+    directions = [long_left_up, long_up_left, long_up_right, long_right_up,
+                  long_right_down, long_down_right, long_down_left, long_left_down]
+    directions.flat_map { |d| search(d) }.sort
+  end
+
+  private
+
+  def long_left_up
+    ->(a, b) { [a - 2, b + 1] }
+  end
+
+  def long_up_left
+    ->(a, b) { [a - 1, b + 2] }
+  end
+
+  def long_up_right
+    ->(a, b) { [a + 1, b + 2] }
+  end
+
+  def long_right_up
+    ->(a, b) { [a + 2, b + 1] }
+  end
+
+  def long_right_down
+    ->(a, b) { [a + 2, b - 1] }
+  end
+
+  def long_down_right
+    ->(a, b) { [a + 1, b - 2] }
+  end
+
+  def long_down_left
+    ->(a, b) { [a - 1, b - 2] }
+  end
+
+  def long_left_down
+    ->(a, b) { [a - 2, b - 1] }
+  end
+
+  def search(transformer)
+    move_list.search(location, transformer, stop_counter: 1)
+  end
+end
+
 class Pawn < Piece
   attr_accessor :moved
 
