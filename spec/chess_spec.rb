@@ -19,8 +19,8 @@ describe Rook do
     end
 
     it "returns all legal movements for a given position" do
-      legal_moves = [[4, 5], [4, 6], [4, 7], [0, 4], [1, 4], [2, 4], [3, 4], [5, 4], [4, 3]].sort
-      result = rook.valid_moves.sort
+      legal_moves = [[0, 4], [1, 4], [2, 4], [3, 4], [4, 3], [4, 5], [4, 6], [4, 7], [5, 4]]
+      result = rook.valid_moves
       expect(result).to eql(legal_moves)
     end
   end
@@ -39,8 +39,8 @@ describe Bishop do
     end
 
     it "returns all legal movements for a given position" do
-      legal_moves = [[3, 3], [3, 5], [2, 6], [1, 7], [5, 5], [6, 6], [7, 7], [5, 3], [6, 2]].sort
-      result = bishop.valid_moves.sort
+      legal_moves = [[1, 7], [2, 6], [3, 3], [3, 5], [5, 3], [5, 5], [6, 2], [6, 6], [7, 7]]
+      result = bishop.valid_moves
       expect(result).to eql(legal_moves)
     end
   end
@@ -58,7 +58,7 @@ describe Pawn do
       context "when free to move" do
         it "returns two legal moves" do
           legal_moves = [[0, 2], [0, 3]]
-          result = pawn.valid_moves.sort
+          result = pawn.valid_moves
           expect(result).to eql(legal_moves)
         end
       end
@@ -70,7 +70,7 @@ describe Pawn do
 
         it "returns one legal move" do
           legal_moves = [[0, 2]]
-          result = pawn.valid_moves.sort
+          result = pawn.valid_moves
           expect(result).to eql(legal_moves)
         end
       end
@@ -82,7 +82,7 @@ describe Pawn do
 
         it "returns no legal moves" do
           legal_moves = []
-          result = pawn.valid_moves.sort
+          result = pawn.valid_moves
           expect(result).to eql(legal_moves)
         end
       end
@@ -98,7 +98,7 @@ describe Pawn do
       context "when free to move" do
         it "returns one legal move" do
           legal_moves = [[0, 6]]
-          result = pawn.valid_moves.sort
+          result = pawn.valid_moves
           expect(result).to eql(legal_moves)
         end
       end
@@ -110,7 +110,7 @@ describe Pawn do
 
         it "returns no legal moves" do
           legal_moves = []
-          result = pawn.valid_moves.sort
+          result = pawn.valid_moves
           expect(result).to eql(legal_moves)
         end
       end

@@ -23,7 +23,7 @@ end
 class Rook < Piece
   def valid_moves
     directions = [up, down, left, right]
-    directions.flat_map { |d| search(d) }
+    directions.flat_map { |d| search(d) }.sort
   end
 
   private
@@ -52,7 +52,7 @@ end
 class Bishop < Piece
   def valid_moves
     directions = [up_left, up_right, down_left, down_right]
-    directions.flat_map { |d| search(d) }
+    directions.flat_map { |d| search(d) }.sort
   end
 
   private
@@ -87,7 +87,7 @@ class Pawn < Piece
   end
 
   def valid_moves
-    search(advance_colour)
+    search(advance_colour).sort
   end
 
   private
