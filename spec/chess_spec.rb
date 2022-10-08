@@ -3,6 +3,27 @@
 
 require_relative "../lib/chess.rb"
 
+describe King do
+  let(:piece) { instance_double("Piece") }
+  let(:board) { Board.new }
+  let(:move_list) { MoveList.new(board) }
+  subject(:king) { described_class.new([4, 4], :white, move_list) }
+
+  describe "#valid_moves" do
+    before do
+      board.state[3][4] = piece
+      board.state[4][5] = piece
+      board.state[5][3] = piece
+    end
+
+    it "returns all legal movements for a given position" do
+      legal_moves = [[3, 3], [3, 5], [4, 3], [5, 4], [5, 5]]
+      result = king.valid_moves
+      expect(result).to eql(legal_moves)
+    end
+  end
+end
+
 describe Queen do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }

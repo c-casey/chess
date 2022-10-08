@@ -20,6 +20,50 @@ class Piece
   end
 end
 
+class King < Piece
+  def valid_moves
+    directions = [up, down, left, right,
+                  up_left, up_right, down_left, down_right]
+    directions.flat_map { |d| search(d) }.sort
+  end
+
+  def up
+    ->(a, b) { [a, b + 1] }
+  end
+
+  def down
+    ->(a, b) { [a, b - 1] }
+  end
+
+  def left
+    ->(a, b) { [a - 1, b] }
+  end
+
+  def right
+    ->(a, b) { [a + 1, b] }
+  end
+
+  def up_left
+    ->(a, b) { [a - 1, b + 1] }
+  end
+
+  def up_right
+    ->(a, b) { [a + 1, b + 1] }
+  end
+
+  def down_left
+    ->(a, b) { [a - 1, b - 1] }
+  end
+
+  def down_right
+    ->(a, b) { [a + 1, b - 1] }
+  end
+
+  def search(transformer)
+    move_list.search(location, transformer, stop_counter: 1)
+  end
+end
+
 class Queen < Piece
   def valid_moves
     directions = [up, down, left, right,
