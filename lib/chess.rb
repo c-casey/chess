@@ -22,63 +22,59 @@ end
 
 class Rook < Piece
   def valid_moves
-    search_up +
-      search_down +
-      search_left +
-      search_right
+    directions = [up, down, left, right]
+    directions.flat_map { |n| search(n) }
   end
 
   private
 
-  def search_up
-    search_lambda = ->(a, b) { [a, b + 1] }
-    move_list.search(location, search_lambda)
+  def up
+    ->(a, b) { [a, b + 1] }
   end
 
-  def search_down
-    search_lambda = ->(a, b) { [a, b - 1] }
-    move_list.search(location, search_lambda)
+  def down
+    ->(a, b) { [a, b - 1] }
   end
 
-  def search_left
-    search_lambda = ->(a, b) { [a - 1, b] }
-    move_list.search(location, search_lambda)
+  def left
+    ->(a, b) { [a - 1, b] }
   end
 
-  def search_right
-    search_lambda = ->(a, b) { [a + 1, b] }
-    move_list.search(location, search_lambda)
+  def right
+    ->(a, b) { [a + 1, b] }
+  end
+
+  def search(transformer)
+    move_list.search(location, transformer)
   end
 end
 
 class Bishop < Piece
   def valid_moves
-    search_up_left +
-      search_up_right +
-      search_down_left +
-      search_down_right
+    directions = [up_left, up_right, down_left, down_right]
+    directions.flat_map { |n| search(n) }
   end
 
   private
 
-  def search_up_left
-    search_lambda = ->(a, b) { [a - 1, b + 1] }
-    move_list.search(location, search_lambda)
+  def up_left
+    ->(a, b) { [a - 1, b + 1] }
   end
 
-  def search_up_right
-    search_lambda = ->(a, b) { [a + 1, b + 1] }
-    move_list.search(location, search_lambda)
+  def up_right
+    ->(a, b) { [a + 1, b + 1] }
   end
 
-  def search_down_left
-    search_lambda = ->(a, b) { [a - 1, b - 1] }
-    move_list.search(location, search_lambda)
+  def down_left
+    ->(a, b) { [a - 1, b - 1] }
   end
 
-  def search_down_right
-    search_lambda = ->(a, b) { [a + 1, b - 1] }
-    move_list.search(location, search_lambda)
+  def down_right
+    ->(a, b) { [a + 1, b - 1] }
+  end
+
+  def search(transformer)
+    move_list.search(location, transformer)
   end
 end
 
