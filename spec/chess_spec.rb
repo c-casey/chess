@@ -21,6 +21,22 @@ describe BoardSetup do
       expect(results).to all(be_an_instance_of(Pawn))
     end
   end
+
+  describe "#place_pieces" do
+    let(:piece_order) { [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook] }
+
+    it "places white pieces" do
+      setup.place_pieces(:white)
+      results = (0..7).map { |n| board.state[n][0].class }
+      expect(results).to eql(piece_order)
+    end
+
+    it "places black pieces" do
+      setup.place_pieces(:black)
+      results = (0..7).map { |n| board.state[n][7].class }
+      expect(results).to eql(piece_order)
+    end
+  end
 end
 
 describe King do

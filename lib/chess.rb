@@ -32,6 +32,29 @@ class BoardSetup
       board.state[file][starting_rank] = pawn
     end
   end
+
+  def place_pieces(colour)
+    starting_rank = colour.eql?(:white) ? 0 : 7
+    0.upto(7) do |file|
+      piece = file_to_piece(file).new([file, starting_rank], colour, move_list)
+      board.state[file][starting_rank] = piece
+    end
+  end
+
+  def file_to_piece(file)
+    case file
+    when 0, 7
+      Rook
+    when 1, 6
+      Knight
+    when 2, 5
+      Bishop
+    when 4
+      King
+    when 3
+      Queen
+    end
+  end
 end
 
 class Piece
