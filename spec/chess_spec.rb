@@ -8,15 +8,15 @@ describe BoardSetup do
   let(:move_list) { MoveList.new(board) }
   subject(:setup) { described_class.new(board, move_list) }
 
-  describe "#distribute_pawns" do
-    it "distributes white pawns" do
-      setup.distribute_pawns(:white)
+  describe "#place_pawns" do
+    it "places white pawns" do
+      setup.place_pawns(:white)
       results = (0..7).map { |n| board.state[n][1] }
       expect(results).to all(be_an_instance_of(Pawn))
     end
 
-    it "distributes black pawns" do
-      setup.distribute_pawns(:black)
+    it "places black pawns" do
+      setup.place_pawns(:black)
       results = (0..7).map { |n| board.state[n][6] }
       expect(results).to all(be_an_instance_of(Pawn))
     end

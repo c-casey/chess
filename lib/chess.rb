@@ -18,12 +18,14 @@ class BoardSetup
     @move_list = move_list
   end
 
-  def distribute_pieces
-    distribute_pawns(:white)
-    distribute_pawns(:black)
+  def new_game
+    place_pawns(:white)
+    place_pieces(:white)
+    place_pawns(:black)
+    place_pieces(:black)
   end
 
-  def distribute_pawns(colour)
+  def place_pawns(colour)
     starting_rank = colour.eql?(:white) ? 1 : 6
     0.upto(7) do |file|
       pawn = Pawn.new([file, starting_rank], colour, move_list)
