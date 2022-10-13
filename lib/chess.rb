@@ -8,6 +8,83 @@ class String
   def bg_light_hl;    "\e[46m#{self}\e[0m" end
 end
 
+class Chess
+  attr_reader :board, :move_list, :display, :current_player, :winner
+
+  def initialize
+    @board = Board.new
+    @move_list = MoveList.new(@board)
+    @display = Display.new
+    @current_player = :white
+    @winner = nil
+    setup_board
+    game_loop
+  end
+
+  private
+
+  def setup_board
+    setup = BoardSetup.new(@board, @move_list)
+    setup.new_game
+  end
+
+  def game_loop
+    until @winner
+      @display.print_board(@board)
+      take_turn(@current_player)
+    end
+  end
+
+  def take_turn(player)
+    piece = select_piece(player)
+    destination = select_destination(player, piece)
+  end
+
+  def select_piece(player)
+    print "Your turn, #{player}! Select a piece: "
+    piece = coords_to_piece(read_selection)
+    @display.print_board(@board, piece.valid_moves)
+    piece
+  end
+
+  def select_destination(player, piece)
+    print "Select a destination: "
+    destination = coords_to_location(read_selection)
+    return destination if piece.valid_moves.member?(destination)
+
+    puts "You can't move there!"
+    select_destination(player, piece)
+  end
+
+  def read_selection
+    selection = gets.chomp.downcase
+    return selection if valid_input?(selection)
+
+    print "Invalid selection! Try again: "
+    read_selection
+  end
+
+  def valid_input?(selection)
+    selection.length == 2 &&
+      selection[0] >= "a" &&
+      selection[0] <= "h" &&
+      selection[1] >= "1" &&
+      selection[1] <= "8"
+  end
+
+  def coords_to_piece(coords)
+    x = coords[0].ord - 97
+    y = coords[1].to_i - 1
+    @board.state[x][y]
+  end
+
+  def coords_to_location(coords)
+    x = coords[0].ord - 97
+    y = coords[1].to_i - 1
+    [x, y]
+  end
+end
+
 class Board
   attr_accessor :state
 
