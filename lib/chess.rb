@@ -59,10 +59,10 @@ end
 
 class Piece
   attr_accessor :location
-  attr_reader :move_list, :colour
+  attr_reader :move_list, :colour, :symbol
 
-  def initialize(start_square, colour, move_list)
-    @location = start_square
+  def initialize(location, colour, move_list)
+    @location = location
     @colour = colour
     @move_list = move_list
   end
