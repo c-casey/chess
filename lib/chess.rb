@@ -7,6 +7,16 @@ class Board
   def initialize
     @state = Array.new(8) { Array.new(8, :empty) }
   end
+
+  def move_piece(origin, dest)
+    origin_x, origin_y = origin
+    dest_x, dest_y = dest
+    piece = state[origin_x][origin_y]
+    piece.location = dest
+    state[dest_x][dest_y] = piece
+    state[origin_x][origin_y] = :empty
+  end
+end
 end
 
 class BoardSetup

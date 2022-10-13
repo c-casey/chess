@@ -1,7 +1,30 @@
 # chess_spec.rb
 # frozen_string_literal: true
 
-require_relative "../lib/chess.rb"
+require_relative "../lib/chess"
+
+describe Board do
+  subject(:board) { described_class.new }
+  let(:move_list) { double("MoveList") }
+  let(:piece) { Piece.new([0, 0], :white, move_list) }
+
+  describe "#move_piece" do
+    before do
+      board.state[0][0] = piece
+      board.move_piece([0, 0], [4, 6])
+    end
+
+    it "moves a piece" do
+      result = board.state[4][6]
+      expect(result).to be_an_instance_of(Piece)
+    end
+
+    it "updates the piece's location variable" do
+      location = board.state[4][6].location
+      expect(location).to eql([4, 6])
+    end
+  end
+end
 
 describe BoardSetup do
   let(:board) { Board.new }
