@@ -29,9 +29,9 @@ class Chess
   end
 
   def game_loop
-    until @winner
-      @display.print_board(@board)
-      take_turn(@current_player)
+    until winner
+      display.print_board(board)
+      take_turn(current_player)
     end
   end
 
@@ -43,7 +43,7 @@ class Chess
   def select_piece(player)
     print "Your turn, #{player}! Select a piece: "
     piece = coords_to_piece(read_selection)
-    @display.print_board(@board, piece.valid_moves)
+    display.print_board(board, piece.valid_moves)
     piece
   end
 
@@ -75,7 +75,7 @@ class Chess
   def coords_to_piece(coords)
     x = coords[0].ord - 97
     y = coords[1].to_i - 1
-    @board.state[x][y]
+    board.lookup_square([x, y])
   end
 
   def coords_to_location(coords)
@@ -86,19 +86,35 @@ class Chess
 end
 
 class Board
+  private
+
   attr_accessor :state
+
+  public
 
   def initialize
     @state = Array.new(8) { Array.new(8, :empty) }
   end
 
+  def lookup_square(coords)
+    x, y = coords
+    state.dig(x, y)
+  end
+
+  def place_piece(piece, coords)
+    x, y = coords
+    state[x][y] = piece
+  end
+
+  def clear_square(coords)
+    place_piece(:empty, coords)
+  end
+
   def move_piece(origin, dest)
-    origin_x, origin_y = origin
-    dest_x, dest_y = dest
-    piece = state[origin_x][origin_y]
+    piece = lookup_square(origin)
+    clear_square(origin)
+    place_piece(piece, dest)
     piece.location = dest
-    state[dest_x][dest_y] = piece
-    state[origin_x][origin_y] = :empty
   end
 end
 
@@ -106,7 +122,7 @@ class Display
   def print_board(board, highlights = [])
     7.downto(0) do |y|
       0.upto(7) do |x|
-        square_contents = board.state[x][y]
+        square_contents = board.lookup_square([x, y])
         symbol = square_contents.eql?(:empty) ? "  " : "#{square_contents.symbol} "
         colour_lambda = colour_picker(x, y, highlights)
         colour_print = colour_lambda.call(x, symbol)
@@ -155,7 +171,7 @@ class BoardSetup
     starting_rank = colour.eql?(:white) ? 1 : 6
     0.upto(7) do |file|
       pawn = Pawn.new([file, starting_rank], colour, move_list)
-      board.state[file][starting_rank] = pawn
+      board.place_piece(pawn, [file, starting_rank])
     end
   end
 
@@ -163,7 +179,7 @@ class BoardSetup
     starting_rank = colour.eql?(:white) ? 0 : 7
     0.upto(7) do |file|
       piece = file_to_piece(file).new([file, starting_rank], colour, move_list)
-      board.state[file][starting_rank] = piece
+      board.place_piece(piece, [file, starting_rank])
     end
   end
 
@@ -483,12 +499,12 @@ class MoveList
   private
 
   def traversible_space?(dest_coords)
-    destination = board.state.dig(*dest_coords)
+    destination = board.lookup_square(dest_coords)
     destination.eql?(:empty) && dest_coords.none?(&:negative?)
   end
 
   def enemy_piece?(dest_coords, attacker_colour)
-    destination = board.state.dig(*dest_coords)
+    destination = board.lookup_square(dest_coords)
     destination.is_a?(Piece) && !destination.colour.eql?(attacker_colour)
   end
 end

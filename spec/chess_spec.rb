@@ -10,17 +10,17 @@ describe Board do
 
   describe "#move_piece" do
     before do
-      board.state[0][0] = piece
+      board.place_piece(piece, [0, 0])
       board.move_piece([0, 0], [4, 6])
     end
 
     it "moves a piece" do
-      result = board.state[4][6]
+      result = board.lookup_square([4, 6])
       expect(result).to be_an_instance_of(Piece)
     end
 
     it "updates the piece's location variable" do
-      location = board.state[4][6].location
+      location = board.lookup_square([4, 6]).location
       expect(location).to eql([4, 6])
     end
   end
@@ -34,13 +34,13 @@ describe BoardSetup do
   describe "#place_pawns" do
     it "places white pawns" do
       setup.place_pawns(:white)
-      results = (0..7).map { |n| board.state[n][1] }
+      results = (0..7).map { |n| board.lookup_square([n, 1]) }
       expect(results).to all(be_an_instance_of(Pawn))
     end
 
     it "places black pawns" do
       setup.place_pawns(:black)
-      results = (0..7).map { |n| board.state[n][6] }
+      results = (0..7).map { |n| board.lookup_square([n, 6]) }
       expect(results).to all(be_an_instance_of(Pawn))
     end
   end
@@ -50,13 +50,13 @@ describe BoardSetup do
 
     it "places white pieces" do
       setup.place_pieces(:white)
-      results = (0..7).map { |n| board.state[n][0].class }
+      results = (0..7).map { |n| board.lookup_square([n, 0]).class }
       expect(results).to eql(piece_order)
     end
 
     it "places black pieces" do
       setup.place_pieces(:black)
-      results = (0..7).map { |n| board.state[n][7].class }
+      results = (0..7).map { |n| board.lookup_square([n, 7]).class }
       expect(results).to eql(piece_order)
     end
   end
@@ -70,9 +70,9 @@ describe King do
 
   describe "#valid_moves" do
     before do
-      board.state[3][4] = piece
-      board.state[4][5] = piece
-      board.state[5][3] = piece
+      board.place_piece(piece, [3, 4])
+      board.place_piece(piece, [4, 5])
+      board.place_piece(piece, [5, 3])
     end
 
     it "returns all legal movements for a given position" do
@@ -91,10 +91,10 @@ describe Queen do
 
   describe "#valid_moves" do
     before do
-      board.state[2][4] = piece
-      board.state[4][5] = piece
-      board.state[5][3] = piece
-      board.state[1][1] = piece
+      board.place_piece(piece, [2, 4])
+      board.place_piece(piece, [4, 5])
+      board.place_piece(piece, [5, 3])
+      board.place_piece(piece, [1, 1])
     end
 
     it "returns all legal movements for a given position" do
@@ -114,8 +114,8 @@ describe Rook do
 
   describe "#valid_moves" do
     before do
-      board.state[6][4] = piece
-      board.state[4][2] = piece
+      board.place_piece(piece, [6, 4])
+      board.place_piece(piece, [4, 2])
     end
 
     it "returns all legal movements for a given position" do
@@ -134,8 +134,8 @@ describe Bishop do
 
   describe "#valid_moves" do
     before do
-      board.state[2][2] = piece
-      board.state[7][1] = piece
+      board.place_piece(piece, [2, 2])
+      board.place_piece(piece, [7, 1])
     end
 
     it "returns all legal movements for a given position" do
@@ -154,8 +154,8 @@ describe Knight do
 
   describe "#valid_moves" do
     before do
-      board.state[3][6] = piece
-      board.state[2][3] = piece
+      board.place_piece(piece, [3, 6])
+      board.place_piece(piece, [2, 3])
     end
 
     it "returns all legal movements for a given position" do
@@ -185,7 +185,7 @@ describe Pawn do
 
       context "when blocked by a piece 2 squares away" do
         before do
-          board.state[0][3] = piece
+          board.place_piece(piece, [0, 3])
         end
 
         it "returns one legal move" do
@@ -197,7 +197,7 @@ describe Pawn do
 
       context "when blocked by a piece 1 square away" do
         before do
-          board.state[0][2] = piece
+          board.place_piece(piece, [0, 2])
         end
 
         it "returns no legal moves" do
@@ -225,7 +225,7 @@ describe Pawn do
 
       context "when blocked by a piece" do
         before do
-          board.state[0][6] = piece
+          board.place_piece(piece, [0, 6])
         end
 
         it "returns no legal moves" do
@@ -259,7 +259,7 @@ describe MoveList do
         let(:piece) { Piece.new([0, 6], :white, move_list) }
 
         before do
-          board.state[0][6] = piece
+          board.place_piece(piece, [0, 6])
         end
 
         it "returns the squares up to the piece" do
@@ -286,7 +286,7 @@ describe MoveList do
         let(:piece) { Piece.new([0, 1], :black, move_list) }
 
         before do
-          board.state[0][1] = piece
+          board.place_piece(piece, [0, 1])
         end
 
         it "returns the squares up to the piece" do
@@ -313,7 +313,7 @@ describe MoveList do
         let(:piece) { Piece.new([1, 0], :white, move_list) }
 
         before do
-          board.state[1][0] = piece
+          board.place_piece(piece, [1, 0])
         end
 
         it "returns the squares up to the piece" do
@@ -340,7 +340,7 @@ describe MoveList do
         let(:piece) { Piece.new([7, 0], :white, move_list) }
 
         before do
-          board.state[7][0] = piece
+          board.place_piece(piece, [7, 0])
         end
 
         it "returns the squares up to the piece" do
@@ -369,7 +369,7 @@ describe MoveList do
         let(:enemy) { Piece.new([0, 5], :black, move_list) }
 
         before do
-          board.state[0][5] = enemy
+          board.place_piece(enemy, [0, 5])
         end
 
         it "returns the coords of the enemy" do
@@ -383,8 +383,8 @@ describe MoveList do
         let(:ally) { Piece.new([0, 4], :white, move_list) }
 
         before do
-          board.state[0][5] = enemy
-          board.state[0][4] = ally
+          board.place_piece(enemy, [0, 5])
+          board.place_piece(ally, [0, 4])
         end
 
         it "returns nil" do
