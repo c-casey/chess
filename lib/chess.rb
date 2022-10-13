@@ -69,6 +69,11 @@ class Piece
 end
 
 class King < Piece
+  def initialize(location, colour, move_list)
+    @symbol = colour.eql?(:white) ? "♔" : "♚"
+    super
+  end
+
   def valid_moves
     directions = [up, down, left, right,
                   up_left, up_right, down_left, down_right]
@@ -113,6 +118,11 @@ class King < Piece
 end
 
 class Queen < Piece
+  def initialize(location, colour, move_list)
+    @symbol = colour.eql?(:white) ? "♕" : "♛"
+    super
+  end
+
   def valid_moves
     directions = [up, down, left, right,
                   up_left, up_right, down_left, down_right]
@@ -160,6 +170,11 @@ class Queen < Piece
 end
 
 class Rook < Piece
+  def initialize(location, colour, move_list)
+    @symbol = colour.eql?(:white) ? "♖" : "♜"
+    super
+  end
+
   def valid_moves
     directions = [up, down, left, right]
     directions.flat_map { |d| search(d) }.sort
@@ -189,6 +204,11 @@ class Rook < Piece
 end
 
 class Bishop < Piece
+  def initialize(location, colour, move_list)
+    @symbol = colour.eql?(:white) ? "♗" : "♝"
+    super
+  end
+
   def valid_moves
     directions = [up_left, up_right, down_left, down_right]
     directions.flat_map { |d| search(d) }.sort
@@ -218,6 +238,11 @@ class Bishop < Piece
 end
 
 class Knight < Piece
+  def initialize(location, colour, move_list)
+    @symbol = colour.eql?(:white) ? "♘" : "♞"
+    super
+  end
+
   def valid_moves
     directions = [long_left_up, long_up_left, long_up_right, long_right_up,
                   long_right_down, long_down_right, long_down_left, long_left_down]
@@ -267,8 +292,9 @@ class Pawn < Piece
   attr_accessor :moved
 
   def initialize(location, colour, move_list)
-    super
+    @symbol = colour.eql?(:white) ? "♙" : "♟"
     @moved = false
+    super
   end
 
   def valid_moves
