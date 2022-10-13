@@ -1,6 +1,13 @@
 # lib/chess.rb
 # frozen_string_literal: true
 
+class String
+  def bg_dark;        "\e[41m#{self}\e[0m" end
+  def bg_light;       "\e[45m#{self}\e[0m" end
+  def bg_dark_hl;     "\e[44m#{self}\e[0m" end
+  def bg_light_hl;    "\e[46m#{self}\e[0m" end
+end
+
 class Board
   attr_accessor :state
 
@@ -17,6 +24,38 @@ class Board
     state[origin_x][origin_y] = :empty
   end
 end
+
+class Display
+  def print_board(board, highlights = [])
+    7.downto(0) do |y|
+      0.upto(7) do |x|
+        square_contents = board.state[x][y]
+        symbol = square_contents.eql?(:empty) ? "  " : "#{square_contents.symbol} "
+        colour_lambda = colour_picker(x, y, highlights)
+        colour_print = colour_lambda.call(x, symbol)
+        print colour_print
+      end
+      puts
+    end
+  end
+
+  private
+
+  def colour_picker(x_value, y_value, highlights)
+    if y_value.odd?
+      if highlights.member?([x_value, y_value])
+        ->(x, str) { x.odd? ? str.bg_dark_hl : str.bg_light_hl }
+      else
+        ->(x, str) { x.odd? ? str.bg_dark : str.bg_light }
+      end
+    else
+      if highlights.member?([x_value, y_value])
+        ->(x, str) { x.even? ? str.bg_dark_hl : str.bg_light_hl }
+      else
+        ->(x, str) { x.even? ? str.bg_dark : str.bg_light }
+      end
+    end
+  end
 end
 
 class BoardSetup
