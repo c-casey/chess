@@ -38,18 +38,19 @@ class Chess
   def take_turn(player)
     piece = select_piece(player)
     destination = select_destination(player, piece)
+    board.move_piece(piece.location, destination)
   end
 
   def select_piece(player)
     print "Your turn, #{player}! Select a piece: "
-    piece = coords_to_piece(read_selection)
+    piece = board.coords_to_piece(read_selection)
     display.print_board(board, piece.valid_moves)
     piece
   end
 
   def select_destination(player, piece)
     print "Select a destination: "
-    destination = coords_to_location(read_selection)
+    destination = board.coords_to_location(read_selection)
     return destination if piece.valid_moves.member?(destination)
 
     puts "You can't move there!"
@@ -70,18 +71,6 @@ class Chess
       selection[0] <= "h" &&
       selection[1] >= "1" &&
       selection[1] <= "8"
-  end
-
-  def coords_to_piece(coords)
-    x = coords[0].ord - 97
-    y = coords[1].to_i - 1
-    board.lookup_square([x, y])
-  end
-
-  def coords_to_location(coords)
-    x = coords[0].ord - 97
-    y = coords[1].to_i - 1
-    [x, y]
   end
 end
 
@@ -115,6 +104,17 @@ class Board
     clear_square(origin)
     place_piece(piece, dest)
     piece.location = dest
+  end
+
+  def coords_to_piece(coords)
+    location = coords_to_location(coords)
+    lookup_square(location)
+  end
+
+  def coords_to_location(coords)
+    x = coords[0].ord - 97
+    y = coords[1].to_i - 1
+    [x, y]
   end
 end
 
