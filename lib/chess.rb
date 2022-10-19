@@ -9,7 +9,8 @@ class String
 end
 
 class Chess
-  attr_reader :board, :move_list, :display, :current_player, :winner
+  attr_accessor :current_player
+  attr_reader :board, :move_list, :display, :winner
 
   def initialize
     @board = Board.new
@@ -31,30 +32,34 @@ class Chess
   def game_loop
     until winner
       display.print_board(board)
-      take_turn(current_player)
+      take_turn
     end
   end
 
-  def take_turn(player)
-    piece = select_piece(player)
-    destination = select_destination(player, piece)
-    board.move_piece(piece.location, destination)
-  end
-
-  def select_piece(player)
-    print "Your turn, #{player}! Select a piece: "
-    piece = board.coords_to_piece(read_selection)
+  def take_turn
+    print "Your turn, #{current_player}! Select a piece: "
+    piece = request_origin
     display.print_board(board, piece.valid_moves)
-    piece
+    print "Select a destination: "
+    destination = request_destination(piece)
+    board.move_piece(piece.location, destination)
+    swap_players
   end
 
-  def select_destination(player, piece)
-    print "Select a destination: "
+  def request_origin
+    piece = board.coords_to_piece(read_selection)
+    return piece if valid_piece?(piece)
+
+    print "Invalid selection! Select a piece: "
+    request_origin
+  end
+
+  def request_destination(piece)
     destination = board.coords_to_location(read_selection)
     return destination if piece.valid_moves.member?(destination)
 
-    puts "You can't move there!"
-    select_destination(player, piece)
+    print "You can't move there! Select a destination: "
+    request_destination(piece)
   end
 
   def read_selection
@@ -71,6 +76,15 @@ class Chess
       selection[0] <= "h" &&
       selection[1] >= "1" &&
       selection[1] <= "8"
+  end
+
+  def valid_piece?(piece)
+    piece.is_a?(Piece) && piece.colour == current_player
+  end
+
+  def swap_players
+    self.current_player =
+      current_player == :white ? :black : :white
   end
 end
 
@@ -508,3 +522,5 @@ class MoveList
     destination.is_a?(Piece) && !destination.colour.eql?(attacker_colour)
   end
 end
+
+Chess.new
