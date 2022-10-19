@@ -232,50 +232,22 @@ class Piece
     @colour = colour
     @move_list = move_list
   end
+
+  def valid_moves
+    transformers = move_list.transformers(directions)
+    transformers.flat_map { |transformer| search(transformer) }.sort
+  end
 end
 
 class King < Piece
+  private
+
+  attr_reader :directions
+
   def initialize(location, colour, move_list)
-    @symbol = colour.eql?(:white) ? "♔" : "♚"
     super
-  end
-
-  def valid_moves
-    directions = [up, down, left, right,
-                  up_left, up_right, down_left, down_right]
-    directions.flat_map { |d| search(d) }.sort
-  end
-
-  def up
-    ->(a, b) { [a, b + 1] }
-  end
-
-  def down
-    ->(a, b) { [a, b - 1] }
-  end
-
-  def left
-    ->(a, b) { [a - 1, b] }
-  end
-
-  def right
-    ->(a, b) { [a + 1, b] }
-  end
-
-  def up_left
-    ->(a, b) { [a - 1, b + 1] }
-  end
-
-  def up_right
-    ->(a, b) { [a + 1, b + 1] }
-  end
-
-  def down_left
-    ->(a, b) { [a - 1, b - 1] }
-  end
-
-  def down_right
-    ->(a, b) { [a + 1, b - 1] }
+    @symbol = colour.eql?(:white) ? "♔" : "♚"
+    @directions = %i[up down left right up_left up_right down_left down_right]
   end
 
   def search(transformer)
@@ -284,84 +256,30 @@ class King < Piece
 end
 
 class Queen < Piece
-  def initialize(location, colour, move_list)
-    @symbol = colour.eql?(:white) ? "♕" : "♛"
-    super
-  end
-
-  def valid_moves
-    directions = [up, down, left, right,
-                  up_left, up_right, down_left, down_right]
-    directions.flat_map { |d| search(d) }.sort
-  end
-
   private
 
-  def up
-    ->(a, b) { [a, b + 1] }
-  end
+  attr_reader :directions
 
-  def down
-    ->(a, b) { [a, b - 1] }
-  end
-
-  def left
-    ->(a, b) { [a - 1, b] }
-  end
-
-  def right
-    ->(a, b) { [a + 1, b] }
-  end
-
-  def up_left
-    ->(a, b) { [a - 1, b + 1] }
-  end
-
-  def up_right
-    ->(a, b) { [a + 1, b + 1] }
-  end
-
-  def down_left
-    ->(a, b) { [a - 1, b - 1] }
-  end
-
-  def down_right
-    ->(a, b) { [a + 1, b - 1] }
+  def initialize(location, colour, move_list)
+    super
+    @symbol = colour.eql?(:white) ? "♕" : "♛"
+    @directions = %i[up down left right up_left up_right down_left down_right]
   end
 
   def search(transformer)
     move_list.search(location, transformer)
   end
-
 end
 
 class Rook < Piece
-  def initialize(location, colour, move_list)
-    @symbol = colour.eql?(:white) ? "♖" : "♜"
-    super
-  end
-
-  def valid_moves
-    directions = [up, down, left, right]
-    directions.flat_map { |d| search(d) }.sort
-  end
-
   private
 
-  def up
-    ->(a, b) { [a, b + 1] }
-  end
+  attr_reader :directions
 
-  def down
-    ->(a, b) { [a, b - 1] }
-  end
-
-  def left
-    ->(a, b) { [a - 1, b] }
-  end
-
-  def right
-    ->(a, b) { [a + 1, b] }
+  def initialize(location, colour, move_list)
+    super
+    @symbol = colour.eql?(:white) ? "♖" : "♜"
+    @directions = %i[up down left right]
   end
 
   def search(transformer)
@@ -370,32 +288,14 @@ class Rook < Piece
 end
 
 class Bishop < Piece
-  def initialize(location, colour, move_list)
-    @symbol = colour.eql?(:white) ? "♗" : "♝"
-    super
-  end
-
-  def valid_moves
-    directions = [up_left, up_right, down_left, down_right]
-    directions.flat_map { |d| search(d) }.sort
-  end
-
   private
 
-  def up_left
-    ->(a, b) { [a - 1, b + 1] }
-  end
+  attr_reader :directions
 
-  def up_right
-    ->(a, b) { [a + 1, b + 1] }
-  end
-
-  def down_left
-    ->(a, b) { [a - 1, b - 1] }
-  end
-
-  def down_right
-    ->(a, b) { [a + 1, b - 1] }
+  def initialize(location, colour, move_list)
+    super
+    @symbol = colour.eql?(:white) ? "♗" : "♝"
+    @directions = %i[up_left up_right down_left down_right]
   end
 
   def search(transformer)
@@ -404,49 +304,15 @@ class Bishop < Piece
 end
 
 class Knight < Piece
-  def initialize(location, colour, move_list)
-    @symbol = colour.eql?(:white) ? "♘" : "♞"
-    super
-  end
-
-  def valid_moves
-    directions = [long_left_up, long_up_left, long_up_right, long_right_up,
-                  long_right_down, long_down_right, long_down_left, long_left_down]
-    directions.flat_map { |d| search(d) }.sort
-  end
-
   private
 
-  def long_left_up
-    ->(a, b) { [a - 2, b + 1] }
-  end
+  attr_reader :directions
 
-  def long_up_left
-    ->(a, b) { [a - 1, b + 2] }
-  end
-
-  def long_up_right
-    ->(a, b) { [a + 1, b + 2] }
-  end
-
-  def long_right_up
-    ->(a, b) { [a + 2, b + 1] }
-  end
-
-  def long_right_down
-    ->(a, b) { [a + 2, b - 1] }
-  end
-
-  def long_down_right
-    ->(a, b) { [a + 1, b - 2] }
-  end
-
-  def long_down_left
-    ->(a, b) { [a - 1, b - 2] }
-  end
-
-  def long_left_down
-    ->(a, b) { [a - 2, b - 1] }
+  def initialize(location, colour, move_list)
+    @symbol = colour.eql?(:white) ? "♘" : "♞"
+    @directions = %i[long_left_up long_up_left long_up_right long_right_up
+                     long_right_down long_down_right long_down_left long_left_down]
+    super
   end
 
   def search(transformer)
@@ -457,33 +323,15 @@ end
 class Pawn < Piece
   attr_accessor :moved
 
-  def initialize(location, colour, move_list)
-    @symbol = colour.eql?(:white) ? "♙" : "♟"
-    @moved = false
-    super
-  end
-
-  def valid_moves
-    search(advance_colour).sort
-  end
-
   private
 
-  def advance_colour
-    case colour
-    when :white
-      advance_white
-    when :black
-      advance_black
-    end
-  end
+  attr_accessor :directions
 
-  def advance_white
-    ->(a, b) { [a, b + 1] }
-  end
-
-  def advance_black
-    ->(a, b) { [a, b - 1] }
+  def initialize(location, colour, move_list)
+    super
+    @symbol = colour.eql?(:white) ? "♙" : "♟"
+    @directions = [colour.eql?(:white) ? :up : :down]
+    @moved = false
   end
 
   def search(transformer)
@@ -493,10 +341,32 @@ class Pawn < Piece
 end
 
 class MoveList
-  attr_reader :board
+  attr_reader :board, :transforms
 
   def initialize(board)
     @board = board
+    @transforms = {
+      up: ->(a, b) { [a, b + 1] },
+      down: ->(a, b) { [a, b - 1] },
+      left: ->(a, b) { [a - 1, b] },
+      right: ->(a, b) { [a + 1, b] },
+      up_left: ->(a, b) { [a - 1, b + 1] },
+      up_right: ->(a, b) { [a + 1, b + 1] },
+      down_left: ->(a, b) { [a - 1, b - 1] },
+      down_right: ->(a, b) { [a + 1, b - 1] },
+      long_left_up: ->(a, b) { [a - 2, b + 1] },
+      long_up_left: ->(a, b) { [a - 1, b + 2] },
+      long_up_right: ->(a, b) { [a + 1, b + 2] },
+      long_right_up: ->(a, b) { [a + 2, b + 1] },
+      long_right_down: ->(a, b) { [a + 2, b - 1] },
+      long_down_right: ->(a, b) { [a + 1, b - 2] },
+      long_down_left: ->(a, b) { [a - 1, b - 2] },
+      long_left_down: ->(a, b) { [a - 2, b - 1] }
+    }
+  end
+
+  def transformers(directions)
+    directions.map { |direction| transforms[direction] }
   end
 
   def search(coords, search_lambda, results = [], stop_counter: nil)
