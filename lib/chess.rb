@@ -40,7 +40,7 @@ class Chess
     print "Your turn, #{current_player}! Select a piece: "
     piece = request_origin
     display.print_board(board, piece.valid_moves)
-    print "Select a destination, or select currently highlighted\n piece to choose a different one: "
+    print "Select a destination, or select currently highlighted piece to choose a different one: "
     destination = request_destination(piece)
     return if piece == board.lookup_square(destination)
 
@@ -137,19 +137,26 @@ end
 
 class Display
   def print_board(board, highlights = [])
+    puts "\n\n\t  A B C D E F G H"
     7.downto(0) do |y|
-      0.upto(7) do |x|
-        square_contents = board.lookup_square([x, y])
-        symbol = square_contents.eql?(:empty) ? "  " : "#{square_contents.symbol} "
-        colour_lambda = colour_picker(x, y, highlights)
-        colour_print = colour_lambda.call(x, symbol)
-        print colour_print
-      end
-      puts
+      print_row(y, board, highlights)
     end
+    puts "\t  A B C D E F G H\n\n"
   end
 
   private
+
+  def print_row(y, board, highlights)
+    print "\t#{y + 1} "
+    0.upto(7) do |x|
+      square_contents = board.lookup_square([x, y])
+      symbol = square_contents.eql?(:empty) ? "  " : "#{square_contents.symbol} "
+      colour_lambda = colour_picker(x, y, highlights)
+      colour_print = colour_lambda.call(x, symbol)
+      print colour_print
+    end
+    puts " #{y + 1}"
+  end
 
   def colour_picker(x_value, y_value, highlights)
     if y_value.odd?
