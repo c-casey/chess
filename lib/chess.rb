@@ -255,6 +255,10 @@ class King < Piece
     @symbol = colour.eql?(:white) ? "♔" : "♚"
     @directions = %i[up down left right up_left up_right down_left down_right]
   end
+
+  def search(transformer)
+    move_list.search(location, transformer, stop_counter: 1)
+  end
 end
 
 class Queen < Piece
