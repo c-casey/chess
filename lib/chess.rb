@@ -237,6 +237,12 @@ class Piece
     transformers = move_list.transformers(directions)
     transformers.flat_map { |transformer| search(transformer) }.sort
   end
+
+  private
+
+  def search(transformer)
+    move_list.search(location, transformer)
+  end
 end
 
 class King < Piece
@@ -248,10 +254,6 @@ class King < Piece
     super
     @symbol = colour.eql?(:white) ? "♔" : "♚"
     @directions = %i[up down left right up_left up_right down_left down_right]
-  end
-
-  def search(transformer)
-    move_list.search(location, transformer, stop_counter: 1)
   end
 end
 
@@ -265,10 +267,6 @@ class Queen < Piece
     @symbol = colour.eql?(:white) ? "♕" : "♛"
     @directions = %i[up down left right up_left up_right down_left down_right]
   end
-
-  def search(transformer)
-    move_list.search(location, transformer)
-  end
 end
 
 class Rook < Piece
@@ -280,10 +278,6 @@ class Rook < Piece
     super
     @symbol = colour.eql?(:white) ? "♖" : "♜"
     @directions = %i[up down left right]
-  end
-
-  def search(transformer)
-    move_list.search(location, transformer)
   end
 end
 
@@ -297,10 +291,6 @@ class Bishop < Piece
     @symbol = colour.eql?(:white) ? "♗" : "♝"
     @directions = %i[up_left up_right down_left down_right]
   end
-
-  def search(transformer)
-    move_list.search(location, transformer)
-  end
 end
 
 class Knight < Piece
@@ -309,10 +299,10 @@ class Knight < Piece
   attr_reader :directions
 
   def initialize(location, colour, move_list)
+    super
     @symbol = colour.eql?(:white) ? "♘" : "♞"
     @directions = %i[long_left_up long_up_left long_up_right long_right_up
                      long_right_down long_down_right long_down_left long_left_down]
-    super
   end
 
   def search(transformer)
