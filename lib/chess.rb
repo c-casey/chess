@@ -25,7 +25,7 @@ class Chess
   private
 
   def setup_board
-    setup = BoardSetup.new(@board, @move_list)
+    setup = BoardSetup.new(board, move_list)
     setup.new_game
   end
 
@@ -40,8 +40,10 @@ class Chess
     print "Your turn, #{current_player}! Select a piece: "
     piece = request_origin
     display.print_board(board, piece.valid_moves)
-    print "Select a destination: "
+    print "Select a destination, or select currently highlighted\n piece to choose a different one: "
     destination = request_destination(piece)
+    return if piece == board.lookup_square(destination)
+
     board.move_piece(piece.location, destination)
     swap_players
   end
@@ -57,6 +59,7 @@ class Chess
   def request_destination(piece)
     destination = board.coords_to_location(read_selection)
     return destination if piece.valid_moves.member?(destination)
+    return destination if piece.location.eql?(destination)
 
     print "You can't move there! Select a destination: "
     request_destination(piece)
