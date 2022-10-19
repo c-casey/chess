@@ -394,4 +394,19 @@ describe MoveList do
       end
     end
   end
+
+  describe "#transformers" do
+    context "when passed directions" do
+      it "returns the corresponding transformers" do
+        directions = %i[left up_right long_down_right]
+        position = [4, 5]
+        transformed_positions = [[3, 5], [5, 6], [5, 3]]
+
+        transformers = move_list.transformers(directions)
+        results = transformers.map { |transformer| transformer.call(*position) }
+
+        expect(results).to eql(transformed_positions)
+      end
+    end
+  end
 end
