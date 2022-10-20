@@ -227,6 +227,12 @@ class Piece
   attr_accessor :location
   attr_reader :move_list, :colour, :symbol
 
+  private
+
+  attr_reader :move_directions
+
+  public
+
   def initialize(location, colour, move_list)
     @location = location
     @colour = colour
@@ -234,7 +240,7 @@ class Piece
   end
 
   def valid_moves
-    transformers = move_list.transformers(directions)
+    transformers = move_list.transformers(move_directions)
     transformers.flat_map { |transformer| search(transformer) }.sort
   end
 
@@ -246,15 +252,13 @@ class Piece
 end
 
 class King < Piece
-  private
-
-  attr_reader :directions
-
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♔" : "♚"
-    @directions = %i[up down left right up_left up_right down_left down_right]
+    @move_directions = %i[up down left right up_left up_right down_left down_right]
   end
+
+  private
 
   def search(transformer)
     move_list.search(location, transformer, stop_counter: 1)
@@ -262,52 +266,38 @@ class King < Piece
 end
 
 class Queen < Piece
-  private
-
-  attr_reader :directions
-
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♕" : "♛"
-    @directions = %i[up down left right up_left up_right down_left down_right]
+    @move_directions = %i[up down left right up_left up_right down_left down_right]
   end
 end
 
 class Rook < Piece
-  private
-
-  attr_reader :directions
-
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♖" : "♜"
-    @directions = %i[up down left right]
+    @move_directions = %i[up down left right]
   end
 end
 
 class Bishop < Piece
-  private
-
-  attr_reader :directions
-
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♗" : "♝"
-    @directions = %i[up_left up_right down_left down_right]
+    @move_directions = %i[up_left up_right down_left down_right]
   end
 end
 
 class Knight < Piece
-  private
-
-  attr_reader :directions
-
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♘" : "♞"
-    @directions = %i[long_left_up long_up_left long_up_right long_right_up
+    @move_directions = %i[long_left_up long_up_left long_up_right long_right_up
                      long_right_down long_down_right long_down_left long_left_down]
   end
+
+  private
 
   def search(transformer)
     move_list.search(location, transformer, stop_counter: 1)
@@ -317,16 +307,14 @@ end
 class Pawn < Piece
   attr_accessor :moved
 
-  private
-
-  attr_accessor :directions
-
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♙" : "♟"
-    @directions = [colour.eql?(:white) ? :up : :down]
+    @move_directions = [colour.eql?(:white) ? :up : :down]
     @moved = false
   end
+
+  private
 
   def search(transformer)
     move_count = moved ? 1 : 2
@@ -397,4 +385,4 @@ class MoveList
   end
 end
 
-Chess.new
+# Chess.new
