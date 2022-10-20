@@ -242,7 +242,7 @@ describe MoveList do
   let(:board) { Board.new }
   subject(:move_list) { described_class.new(board) }
 
-  describe "#search" do
+  describe "#move_search" do
     context "when searching upward" do
       let(:start_square) { [0, 0] }
       let(:search_lambda) { ->(a, b) { [a, b + 1] } }
@@ -250,7 +250,7 @@ describe MoveList do
       context "when there are no pieces above" do
         it "returns all the squares above" do
           file_full = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_full)
         end
       end
@@ -264,7 +264,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_upto)
         end
       end
@@ -277,7 +277,7 @@ describe MoveList do
       context "when there are no pieces below" do
         it "returns all the squares below" do
           file_full = [[0, 6], [0, 5], [0, 4], [0, 3], [0, 2], [0, 1], [0, 0]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_full)
         end
       end
@@ -291,7 +291,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[0, 6], [0, 5], [0, 4], [0, 3], [0, 2]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_upto)
         end
       end
@@ -304,7 +304,7 @@ describe MoveList do
       context "when there are no pieces leftward" do
         it "returns all the squares leftward" do
           file_full = [[6, 0], [5, 0], [4, 0], [3, 0], [2, 0], [1, 0], [0, 0]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_full)
         end
       end
@@ -318,7 +318,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[6, 0], [5, 0], [4, 0], [3, 0], [2, 0]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_upto)
         end
       end
@@ -331,7 +331,7 @@ describe MoveList do
       context "when there are no pieces rightward" do
         it "returns all the squares rightward" do
           file_full = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_full)
         end
       end
@@ -345,23 +345,23 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]]
-          result = move_list.search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda)
           expect(result).to eql(file_upto)
         end
       end
     end
   end
 
-  describe "#attacks" do
+  describe "#attack_search" do
     context "when searching upward" do
       let(:start_square) { [0, 0] }
       let(:colour) { :white }
       let(:search_lambda) { ->(a, b) { [a, b + 1] } }
 
       context "when there is no enemy" do
-        it "returns nil" do
-          result = move_list.attacks(start_square, colour, search_lambda)
-          expect(result).to eql(nil)
+        it "returns empty array" do
+          result = move_list.attack_search(start_square, colour, search_lambda)
+          expect(result).to eql([])
         end
       end
 
@@ -373,8 +373,8 @@ describe MoveList do
         end
 
         it "returns the coords of the enemy" do
-          result = move_list.attacks(start_square, colour, search_lambda)
-          expect(result).to eql([0, 5])
+          result = move_list.attack_search(start_square, colour, search_lambda)
+          expect(result).to eql([[0, 5]])
         end
       end
 
@@ -387,9 +387,9 @@ describe MoveList do
           board.place_piece(ally, [0, 4])
         end
 
-        it "returns nil" do
-          result = move_list.attacks(start_square, colour, search_lambda)
-          expect(result).to eql(nil)
+        it "returns empty array" do
+          result = move_list.attack_search(start_square, colour, search_lambda)
+          expect(result).to eql([])
         end
       end
     end

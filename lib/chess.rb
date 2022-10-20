@@ -6,6 +6,8 @@ class String
   def bg_light;       "\e[45m#{self}\e[0m" end
   def bg_dark_hl;     "\e[44m#{self}\e[0m" end
   def bg_light_hl;    "\e[46m#{self}\e[0m" end
+  def bg_threatened;  "\e[31m#{self}\e[0m" end
+  def bg_selected;    "\e[40m#{self}\e[0m" end
 end
 
 class Chess
@@ -39,7 +41,7 @@ class Chess
   def take_turn
     print "Your turn, #{current_player}! Select a piece: "
     piece = request_origin
-    display.print_board(board, piece.valid_moves)
+    display.print_board(board, piece.valid_moves + piece.valid_attacks)
     print "Select a destination, or select currently highlighted piece to choose a different one: "
     destination = request_destination(piece)
     return if piece == board.lookup_square(destination)
@@ -151,27 +153,42 @@ class Display
     0.upto(7) do |x|
       square_contents = board.lookup_square([x, y])
       symbol = square_contents.eql?(:empty) ? "  " : "#{square_contents.symbol} "
-      colour_lambda = colour_picker(x, y, highlights)
+      colour_lambda = colour_picker(x, y, board, highlights)
       colour_print = colour_lambda.call(x, symbol)
       print colour_print
     end
     puts " #{y + 1}"
   end
 
-  def colour_picker(x_value, y_value, highlights)
-    if y_value.odd?
-      if highlights.member?([x_value, y_value])
-        ->(x, str) { x.odd? ? str.bg_dark_hl : str.bg_light_hl }
-      else
-        ->(x, str) { x.odd? ? str.bg_dark : str.bg_light }
-      end
+  def colour_picker(x_value, y_value, board, highlights)
+    if highlights.member?([x_value, y_value]) && board.lookup_square([x_value, y_value]).is_a?(Piece)
+      ->(_x, str) { str.bg_threatened }
+    elsif y_value.odd?
+      odd_colour_picker(x_value, y_value, highlights)
     else
-      if highlights.member?([x_value, y_value])
-        ->(x, str) { x.even? ? str.bg_dark_hl : str.bg_light_hl }
-      else
-        ->(x, str) { x.even? ? str.bg_dark : str.bg_light }
-      end
+      even_colour_picker(x_value, y_value, highlights)
     end
+  end
+
+  def odd_colour_picker(x_value, y_value, highlights)
+    if highlights.member?([x_value, y_value])
+      ->(x, str) { x.odd? ? str.bg_dark_hl : str.bg_light_hl }
+    else
+      ->(x, str) { x.odd? ? str.bg_dark : str.bg_light }
+    end
+  end
+
+  def even_colour_picker(x_value, y_value, highlights)
+    if highlights.member?([x_value, y_value])
+      ->(x, str) { x.even? ? str.bg_dark_hl : str.bg_light_hl }
+    else
+      ->(x, str) { x.even? ? str.bg_dark : str.bg_light }
+    end
+  end
+
+  def threatened_piece?(x_value, y_value, board, highlights)
+    highlights.member?([x_value, y_value]) &&
+      board.lookup_square([x_value, y_value]).is_a?(Piece)
   end
 end
 
@@ -229,7 +246,7 @@ class Piece
 
   private
 
-  attr_reader :move_directions
+  attr_reader :move_directions, :attack_directions
 
   public
 
@@ -241,13 +258,22 @@ class Piece
 
   def valid_moves
     transformers = move_list.transformers(move_directions)
-    transformers.flat_map { |transformer| search(transformer) }.sort
+    transformers.flat_map { |transformer| move_search(transformer) }.sort
+  end
+
+  def valid_attacks
+    transformers = move_list.transformers(attack_directions)
+    transformers.flat_map { |transformer| attack_search(transformer) }.sort
   end
 
   private
 
-  def search(transformer)
-    move_list.search(location, transformer)
+  def move_search(transformer)
+    move_list.move_search(location, transformer)
+  end
+
+  def attack_search(transformer)
+    move_list.attack_search(location, colour, transformer)
   end
 end
 
@@ -256,12 +282,13 @@ class King < Piece
     super
     @symbol = colour.eql?(:white) ? "♔" : "♚"
     @move_directions = %i[up down left right up_left up_right down_left down_right]
+    @attack_directions = move_directions
   end
 
   private
 
-  def search(transformer)
-    move_list.search(location, transformer, stop_counter: 1)
+  def move_search(transformer)
+    move_list.move_search(location, transformer, stop_counter: 1)
   end
 end
 
@@ -270,6 +297,7 @@ class Queen < Piece
     super
     @symbol = colour.eql?(:white) ? "♕" : "♛"
     @move_directions = %i[up down left right up_left up_right down_left down_right]
+    @attack_directions = move_directions
   end
 end
 
@@ -278,6 +306,7 @@ class Rook < Piece
     super
     @symbol = colour.eql?(:white) ? "♖" : "♜"
     @move_directions = %i[up down left right]
+    @attack_directions = move_directions
   end
 end
 
@@ -286,6 +315,7 @@ class Bishop < Piece
     super
     @symbol = colour.eql?(:white) ? "♗" : "♝"
     @move_directions = %i[up_left up_right down_left down_right]
+    @attack_directions = move_directions
   end
 end
 
@@ -294,13 +324,18 @@ class Knight < Piece
     super
     @symbol = colour.eql?(:white) ? "♘" : "♞"
     @move_directions = %i[long_left_up long_up_left long_up_right long_right_up
-                     long_right_down long_down_right long_down_left long_left_down]
+                          long_right_down long_down_right long_down_left long_left_down]
+    @attack_directions = move_directions
   end
 
   private
 
-  def search(transformer)
-    move_list.search(location, transformer, stop_counter: 1)
+  def move_search(transformer)
+    move_list.move_search(location, transformer, stop_counter: 1)
+  end
+
+  def attack_search(transformer)
+    move_list.attack_search(location, colour, transformer, stop_counter: 1)
   end
 end
 
@@ -311,14 +346,19 @@ class Pawn < Piece
     super
     @symbol = colour.eql?(:white) ? "♙" : "♟"
     @move_directions = [colour.eql?(:white) ? :up : :down]
+    @attack_directions = colour.eql?(:white) ? %i[up_left up_right] : %i[down_left down_right]
     @moved = false
   end
 
   private
 
-  def search(transformer)
+  def move_search(transformer)
     move_count = moved ? 1 : 2
-    move_list.search(location, transformer, stop_counter: move_count)
+    move_list.move_search(location, transformer, stop_counter: move_count)
+  end
+
+  def attack_search(transformer)
+    move_list.attack_search(location, colour, transformer, stop_counter: 1)
   end
 end
 
@@ -348,27 +388,31 @@ class MoveList
   end
 
   def transformers(directions)
-    directions.map { |direction| transforms[direction] }
+    directions.flat_map { |direction| transforms[direction] }
   end
 
-  def search(coords, search_lambda, results = [], stop_counter: nil)
+  def move_search(coords, search_lambda, results = [], stop_counter: nil)
     return results if stop_counter&.zero?
 
     dest_coords = search_lambda.call(coords[0], coords[1])
     if traversible_space?(dest_coords)
       results << dest_coords
-      search(dest_coords, search_lambda, results, stop_counter: stop_counter&.pred)
+      move_search(dest_coords, search_lambda, results, stop_counter: stop_counter&.pred)
     else
       results
     end
   end
 
-  def attacks(coords, colour, search_lambda)
+  def attack_search(coords, colour, search_lambda, results = [], stop_counter: nil)
+    return results if stop_counter&.zero?
+
     dest_coords = search_lambda.call(coords[0], coords[1])
     if enemy_piece?(dest_coords, colour)
-      dest_coords
+      results << dest_coords
     elsif traversible_space?(dest_coords)
-      attacks(dest_coords, colour, search_lambda)
+      attack_search(dest_coords, colour, search_lambda, stop_counter: stop_counter&.pred)
+    else
+      results
     end
   end
 
