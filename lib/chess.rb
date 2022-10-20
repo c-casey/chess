@@ -60,7 +60,7 @@ class Chess
 
   def request_destination(piece)
     destination = board.coords_to_location(read_selection)
-    return destination if piece.valid_moves.member?(destination)
+    return destination if valid_move?(piece, destination)
     return destination if piece.location.eql?(destination)
 
     print "You can't move there! Select a destination: "
@@ -85,6 +85,11 @@ class Chess
 
   def valid_piece?(piece)
     piece.is_a?(Piece) && piece.colour == current_player
+  end
+
+  def valid_move?(piece, destination)
+    piece.valid_moves.member?(destination) ||
+      piece.valid_attacks.member?(destination)
   end
 
   def swap_players
@@ -340,7 +345,11 @@ class Knight < Piece
 end
 
 class Pawn < Piece
+  private
+
   attr_accessor :moved
+
+  public
 
   def initialize(location, colour, move_list)
     super
@@ -348,6 +357,11 @@ class Pawn < Piece
     @move_directions = [colour.eql?(:white) ? :up : :down]
     @attack_directions = colour.eql?(:white) ? %i[up_left up_right] : %i[down_left down_right]
     @moved = false
+  end
+
+  def location=(location)
+    self.moved = true
+    @location = location
   end
 
   private
@@ -429,4 +443,4 @@ class MoveList
   end
 end
 
-# Chess.new
+Chess.new
