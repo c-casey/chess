@@ -23,6 +23,166 @@ describe Board do
       location = board.lookup_square([4, 6]).location
       expect(location).to eql([4, 6])
     end
+
+    context "when white castles" do
+      let(:rook_queenside) { Rook.new([0, 0], :white, move_list) }
+      let(:rook_kingside) { Rook.new([7, 0], :white, move_list) }
+      let(:king) { King.new([4, 0], :white, move_list) }
+
+      before do
+        board.place_piece(rook_queenside, [0, 0])
+        board.place_piece(rook_kingside, [7, 0])
+        board.place_piece(king, [4, 0])
+      end
+
+      context "when castling queenside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 0], [2, 0])
+          result = board.lookup_square([3, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 0], [2, 0])
+          result = board.lookup_square([7, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+
+      context "when castling kingside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 0], [6, 0])
+          result = board.lookup_square([5, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 0], [6, 0])
+          result = board.lookup_square([0, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+    end
+
+    context "when black castles" do
+      let(:rook_queenside) { Rook.new([0, 7], :black, move_list) }
+      let(:rook_kingside) { Rook.new([7, 7], :black, move_list) }
+      let(:king) { King.new([4, 7], :black, move_list) }
+
+      before do
+        board.place_piece(rook_queenside, [0, 7])
+        board.place_piece(rook_kingside, [7, 7])
+        board.place_piece(king, [4, 7])
+      end
+
+      context "when black castles queenside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 7], [2, 7])
+          result = board.lookup_square([3, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 7], [2, 7])
+          result = board.lookup_square([7, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+
+      context "when black castles kingside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 7], [6, 7])
+          result = board.lookup_square([5, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 7], [6, 7])
+          result = board.lookup_square([0, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+    end
+
+    context "when white castles" do
+      let(:rook_queenside) { Rook.new([0, 0], :white, move_list) }
+      let(:rook_kingside) { Rook.new([7, 0], :white, move_list) }
+      let(:king) { King.new([4, 0], :white, move_list) }
+
+      before do
+        board.place_piece(rook_queenside, [0, 0])
+        board.place_piece(rook_kingside, [7, 0])
+        board.place_piece(king, [4, 0])
+      end
+
+      context "when castling queenside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 0], [2, 0])
+          result = board.lookup_square([3, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 0], [2, 0])
+          result = board.lookup_square([7, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+
+      context "when castling kingside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 0], [6, 0])
+          result = board.lookup_square([5, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 0], [6, 0])
+          result = board.lookup_square([0, 0])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+    end
+
+    context "when black castles" do
+      let(:rook_queenside) { Rook.new([0, 7], :black, move_list) }
+      let(:rook_kingside) { Rook.new([7, 7], :black, move_list) }
+      let(:king) { King.new([4, 7], :black, move_list) }
+
+      before do
+        board.place_piece(rook_queenside, [0, 7])
+        board.place_piece(rook_kingside, [7, 7])
+        board.place_piece(king, [4, 7])
+      end
+
+      context "when black castles queenside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 7], [2, 7])
+          result = board.lookup_square([3, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 7], [2, 7])
+          result = board.lookup_square([7, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+
+      context "when black castles kingside" do
+        it "moves the rook appropriately" do
+          board.move_piece([4, 7], [6, 7])
+          result = board.lookup_square([5, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+
+        it "doesn't move the other rook" do
+          board.move_piece([4, 7], [6, 7])
+          result = board.lookup_square([0, 7])
+          expect(result).to be_an_instance_of(Rook)
+        end
+      end
+    end
   end
 end
 

@@ -125,6 +125,8 @@ class Board
 
   def move_piece(origin, dest)
     piece = lookup_square(origin)
+    row = piece.location[1]
+    check_castle(piece, row, dest) if piece.is_a?(King)
     clear_square(origin)
     place_piece(piece, dest)
     piece.location = dest
@@ -139,6 +141,50 @@ class Board
     x = coords[0].ord - 97
     y = coords[1].to_i - 1
     [x, y]
+  end
+
+  private
+
+  def check_castle(piece, row, dest)
+    if castle_short?(piece, row, dest)
+      castle_rook_short(row)
+    elsif castle_long?(piece, row, dest)
+      castle_rook_long(row)
+    end
+  end
+
+  def castle_short?(piece, row, dest)
+    rook_coords = [7, row]
+    maybe_rook = lookup_square(rook_coords)
+
+    dest == [6, row] &&
+      piece.moved == false &&
+      maybe_rook.is_a?(Rook) &&
+      maybe_rook.moved == false &&
+      (5..6).map { |i| lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
+  end
+
+  def castle_long?(piece, row, dest)
+    rook_coords = [0, row]
+    maybe_rook = lookup_square(rook_coords)
+
+    dest == [2, row] &&
+      piece.moved == false &&
+      maybe_rook.is_a?(Rook) &&
+      maybe_rook.moved == false &&
+      (1..3).map { |i| lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
+  end
+
+  def castle_rook_short(row)
+    rook_coords = [7, row]
+    move_piece(rook_coords, [5, row])
+    clear_square(rook_coords)
+  end
+
+  def castle_rook_long(row)
+    rook_coords = [0, row]
+    move_piece(rook_coords, [3, row])
+    clear_square(rook_coords)
   end
 end
 
@@ -283,17 +329,31 @@ class Piece
 end
 
 class King < Piece
+  attr_accessor :moved
+
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♔" : "♚"
     @move_directions = %i[up down left right up_left up_right down_left down_right]
     @attack_directions = move_directions
+    @moved = false
+  end
+
+  def valid_moves
+    transformers = move_list.transformers(move_directions)
+    transformers += move_list.transformers([:castle_short]) if move_list.castle_short?(self, location[1])
+    transformers += move_list.transformers([:castle_long]) if move_list.castle_long?(self, location[1])
+    transformers.flat_map { |transformer| move_search(transformer) }.sort
   end
 
   private
 
   def move_search(transformer)
     move_list.move_search(location, transformer, stop_counter: 1)
+  end
+
+  def attack_search(transformer)
+    move_list.attack_search(location, colour, transformer, stop_counter: 1)
   end
 end
 
@@ -307,11 +367,14 @@ class Queen < Piece
 end
 
 class Rook < Piece
+  attr_accessor :moved
+
   def initialize(location, colour, move_list)
     super
     @symbol = colour.eql?(:white) ? "♖" : "♜"
     @move_directions = %i[up down left right]
     @attack_directions = move_directions
+    @moved = false
   end
 end
 
@@ -345,11 +408,7 @@ class Knight < Piece
 end
 
 class Pawn < Piece
-  private
-
   attr_accessor :moved
-
-  public
 
   def initialize(location, colour, move_list)
     super
@@ -397,7 +456,9 @@ class MoveList
       long_right_down: ->(a, b) { [a + 2, b - 1] },
       long_down_right: ->(a, b) { [a + 1, b - 2] },
       long_down_left: ->(a, b) { [a - 1, b - 2] },
-      long_left_down: ->(a, b) { [a - 2, b - 1] }
+      long_left_down: ->(a, b) { [a - 2, b - 1] },
+      castle_short: ->(a, b) { [a + 2, b] },
+      castle_long: ->(a, b) { [a - 2, b] },
     }
   end
 
@@ -428,6 +489,26 @@ class MoveList
     else
       results
     end
+  end
+
+  def castle_short?(piece, row)
+    rook_coords = [7, row]
+    maybe_rook = board.lookup_square(rook_coords)
+
+    piece.moved == false &&
+      maybe_rook.is_a?(Rook) &&
+      maybe_rook.moved == false &&
+      (5..6).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
+  end
+
+  def castle_long?(piece, row)
+    rook_coords = [0, row]
+    maybe_rook = board.lookup_square(rook_coords)
+
+    piece.moved == false &&
+      maybe_rook.is_a?(Rook) &&
+      maybe_rook.moved == false &&
+      (1..3).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
   end
 
   private
