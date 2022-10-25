@@ -316,6 +316,68 @@ describe Pawn do
       end
     end
   end
+
+  describe "#valid_attacks" do
+    subject(:pawn_move) { Pawn.new([5, 6], :black, move_list) }
+    let(:pawn_capture) { Pawn.new([4, 4], :white, move_list) }
+
+    context "when a pawn uses its double move to pass enemy pawn's attack zone" do
+      before do
+        board.place_piece(pawn_move, [5, 6])
+        board.place_piece(pawn_capture, [4, 4])
+      end
+
+      it "can be captured en passant" do
+        pawn_move.move([5, 4], board)
+        results = pawn_capture.valid_attacks
+        expect(results).to eql([[5, 4]])
+      end
+    end
+
+    context "when a pawn uses two single moves to pass enemy pawn's attack zone" do
+      before do
+        board.place_piece(pawn_move, [5, 6])
+        board.place_piece(pawn_capture, [4, 4])
+      end
+
+      it "cannot be captured en passant" do
+        pawn_move.move([5, 5], board)
+        pawn_capture.move([5, 4], board)
+        results = pawn_capture.valid_attacks
+        expect(results).to eql([])
+      end
+    end
+
+    context "when a pawn uses one single move to pass enemy pawn's attack zone" do
+      before do
+        board.place_piece(pawn_move, [5, 6])
+        board.place_piece(pawn_capture, [4, 4])
+      end
+
+      it "cannot be captured en passant" do
+        pawn_move.move([5, 5], board)
+        pawn_capture.move([4, 5], board)
+        results = pawn_capture.valid_attacks
+        expect(results).to eql([])
+      end
+    end
+
+    context "when a pawn uses its double move and enemy pawn moves beside it" do
+      let(:pawn_capture) { Pawn.new([4, 3], :white, move_list) }
+
+      before do
+        board.place_piece(pawn_move, [5, 6])
+        board.place_piece(pawn_capture, [4, 3])
+      end
+
+      it "cannot be captured en passant" do
+        pawn_move.move([5, 4], board)
+        pawn_capture.move([4, 4], board)
+        results = pawn_capture.valid_attacks
+        expect(results).to eql([])
+      end
+    end
+  end
 end
 
 describe MoveList do

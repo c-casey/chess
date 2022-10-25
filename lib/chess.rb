@@ -46,7 +46,7 @@ class Chess
     destination = request_destination(piece)
     return if piece == board.lookup_square(destination)
 
-    board.move_piece(piece.location, destination)
+    piece.move(destination, board)
     swap_players
   end
 
@@ -93,8 +93,11 @@ class Chess
   end
 
   def swap_players
-    self.current_player =
-      current_player == :white ? :black : :white
+    self.current_player = opponent
+  end
+
+  def opponent
+    current_player.eql?(:white) ? :black : :white
   end
 end
 
@@ -141,6 +144,14 @@ class Board
     x = coords[0].ord - 97
     y = coords[1].to_i - 1
     [x, y]
+  end
+
+  def age_pieces(colour)
+    rank = colour.eql?(:white) ? 3 : 4
+    0.upto(7) do |file|
+      piece = lookup_square([file, rank])
+      piece.moved = true if piece.is_a?(Pawn)
+    end
   end
 
   private
@@ -317,6 +328,11 @@ class Piece
     transformers.flat_map { |transformer| attack_search(transformer) }.sort
   end
 
+  def move(destination, board)
+    board.move_piece(location, destination)
+    age_opponent_pieces(board)
+  end
+
   private
 
   def move_search(transformer)
@@ -325,6 +341,11 @@ class Piece
 
   def attack_search(transformer)
     move_list.attack_search(location, colour, transformer)
+  end
+
+  def age_opponent_pieces(board)
+    opponent_colour = colour.eql?(:white) ? :black : :white
+    board.age_pieces(opponent_colour)
   end
 end
 
@@ -419,11 +440,36 @@ class Pawn < Piece
   end
 
   def location=(location)
-    self.moved = true
+    self.moved = moved.eql?(false) ? :last : true
     @location = location
   end
 
+  def valid_attacks
+    transformers = move_list.transformers(attack_directions)
+    transformers += move_list.transformers([:left]) if move_list.en_passant?(self, :left)
+    transformers += move_list.transformers([:right]) if move_list.en_passant?(self, :right)
+    transformers.flat_map { |transformer| attack_search(transformer) }.sort
+  end
+
+  def move(destination, board)
+    board.clear_square(destination)
+    destination = adjust_move_y(destination) if en_passant?(destination)
+    super
+  end
+
   private
+
+  def adjust_move_y(dest)
+    transformer = move_list.transforms[*move_directions]
+    transformer.call(*dest)
+  end
+
+  def en_passant?(dest)
+    leftward = move_list.transforms[:left]
+    rightward = move_list.transforms[:right]
+    (leftward.call(*location) == dest || rightward.call(*location) == dest) &&
+      (location[1] == 3 || location[1] == 4)
+  end
 
   def move_search(transformer)
     move_count = moved ? 1 : 2
@@ -458,7 +504,7 @@ class MoveList
       long_down_left: ->(a, b) { [a - 1, b - 2] },
       long_left_down: ->(a, b) { [a - 2, b - 1] },
       castle_short: ->(a, b) { [a + 2, b] },
-      castle_long: ->(a, b) { [a - 2, b] },
+      castle_long: ->(a, b) { [a - 2, b] }
     }
   end
 
@@ -509,6 +555,14 @@ class MoveList
       maybe_rook.is_a?(Rook) &&
       maybe_rook.moved == false &&
       (1..3).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
+  end
+
+  def en_passant?(piece, direction)
+    transform = transforms[direction]
+    side_square = transform.call(*piece.location)
+    contents = board.lookup_square(side_square)
+    contents.is_a?(Pawn) && contents.moved.eql?(:last) &&
+      (side_square[1] == 3 || side_square[1] == 4)
   end
 
   private
