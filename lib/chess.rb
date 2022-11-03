@@ -2,12 +2,12 @@
 # frozen_string_literal: true
 
 class String
-  def bg_dark;        "\e[41m#{self}\e[0m" end
-  def bg_light;       "\e[45m#{self}\e[0m" end
-  def bg_dark_hl;     "\e[44m#{self}\e[0m" end
-  def bg_light_hl;    "\e[46m#{self}\e[0m" end
-  def bg_threatened;  "\e[31m#{self}\e[0m" end
-  def bg_selected;    "\e[40m#{self}\e[0m" end
+  def bg_dark =       "\e[41m#{self}\e[0m"
+  def bg_light =      "\e[45m#{self}\e[0m"
+  def bg_dark_hl =    "\e[44m#{self}\e[0m"
+  def bg_light_hl =   "\e[46m#{self}\e[0m"
+  def bg_threatened = "\e[31m#{self}\e[0m"
+  def bg_selected =   "\e[40m#{self}\e[0m"
 end
 
 class Chess
@@ -21,6 +21,7 @@ class Chess
     @current_player = :white
     @winner = nil
     setup_board
+    puts "\e[H\e[2J\n\tWelcome to Chess!"
     game_loop
   end
 
@@ -41,6 +42,7 @@ class Chess
   def take_turn
     print "Your turn, #{current_player}! Select a piece: "
     piece = request_origin
+    puts "\e[H\e[2J"
     display.print_board(board, piece.valid_moves + piece.valid_attacks)
     print "Select a destination, or select currently highlighted piece to choose a different one: "
     destination = request_destination(piece)
@@ -48,6 +50,7 @@ class Chess
 
     piece.move(destination, board)
     swap_players
+    puts "\e[H\e[2J"
   end
 
   def request_origin
@@ -63,7 +66,7 @@ class Chess
     return destination if valid_move?(piece, destination)
     return destination if piece.location.eql?(destination)
 
-    print "You can't move there! Select a destination: "
+    print "Invalid move! Select a destination: "
     request_destination(piece)
   end
 
@@ -113,8 +116,7 @@ class Board
   end
 
   def lookup_square(coords)
-    x, y = coords
-    state.dig(x, y)
+    state.dig(*coords)
   end
 
   def place_piece(piece, coords)
