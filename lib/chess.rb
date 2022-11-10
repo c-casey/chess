@@ -11,67 +11,74 @@ class String
 end
 
 class Chess
-  attr_accessor :current_player
-  attr_reader :board, :move_list, :display, :winner
+  attr_accessor :current_player, :winner
+  attr_reader :board, :move_list, :display
 
-  def initialize
-    @board = Board.new
-    @move_list = MoveList.new(@board)
-    @display = Display.new
+  def initialize(board, move_list, display)
+    @board = board
+    @move_list = move_list
+    @display = display
     @current_player = :white
     @winner = nil
-    setup_board
-    puts "\e[H\e[2J\n\tWelcome to Chess!"
-    game_loop
   end
 
-  private
-
-  def setup_board
-    setup = BoardSetup.new(board, move_list)
-    setup.new_game
+  def setup_board(preparer)
+    preparer.new_game
   end
 
   def game_loop
     until winner
       display.print_board(board)
       take_turn
+      check_end_condition
     end
+    display.print_board(board)
+    winner.eql?(:tie) ? declare_stalemate : declare_checkmate
   end
 
+  private
+
   def take_turn
-    print "Your turn, #{current_player}! Select a piece: "
+    turn_intro_text
     piece = request_origin
-    puts "\e[H\e[2J"
-    display.print_board(board, piece.valid_moves + piece.valid_attacks)
-    print "Select a destination, or select currently highlighted piece to choose a different one: "
+    display_moves(piece)
     destination = request_destination(piece)
     return if piece == board.lookup_square(destination)
 
     piece.move(destination, board)
     swap_players
-    puts "\e[H\e[2J"
+  end
+
+  def turn_intro_text
+    print "Check! " if checked?
+    print "Your turn, #{current_player}! "
   end
 
   def request_origin
+    print "Select a piece: "
     piece = board.coords_to_piece(read_selection)
     return piece if valid_piece?(piece)
 
-    print "Invalid selection! Select a piece: "
+    print "Invalid selection! "
     request_origin
   end
 
+  def display_moves(piece)
+    display.print_board(board, piece.valid_moves_and_attacks(board))
+  end
+
   def request_destination(piece)
+    print "Select a destination, or select currently highlighted piece to choose a different one: "
     destination = board.coords_to_location(read_selection)
     return destination if valid_move?(piece, destination)
     return destination if piece.location.eql?(destination)
 
-    print "Invalid move! Select a destination: "
+    print "Invalid move! "
     request_destination(piece)
   end
 
   def read_selection
-    selection = gets.chomp.downcase
+    selection = $stdin.gets.chomp.downcase
     return selection if valid_input?(selection)
 
     print "Invalid selection! Try again: "
@@ -91,8 +98,7 @@ class Chess
   end
 
   def valid_move?(piece, destination)
-    piece.valid_moves.member?(destination) ||
-      piece.valid_attacks.member?(destination)
+    piece.valid_moves_and_attacks(board).member?(destination)
   end
 
   def swap_players
@@ -101,6 +107,24 @@ class Chess
 
   def opponent
     current_player.eql?(:white) ? :black : :white
+  end
+
+  def checked?
+    board.player_pieces(opponent).any? { |piece| piece.check?(board) }
+  end
+
+  def check_end_condition
+    return if board.valid_moves?(current_player)
+
+    self.winner = checked? ? opponent : :tie
+  end
+
+  def declare_checkmate
+    puts "Checkmate! #{winner.capitalize} wins!"
+  end
+
+  def declare_stalemate
+    puts "Stalemate!"
   end
 end
 
@@ -111,8 +135,12 @@ class Board
 
   public
 
-  def initialize
-    @state = Array.new(8) { Array.new(8, :empty) }
+  def initialize(state: nil)
+    @state = state || Array.new(8) { Array.new(8, :empty) }
+  end
+
+  def player_pieces(colour)
+    all_pieces.find_all { |e| e.colour.eql?(colour) }
   end
 
   def lookup_square(coords)
@@ -156,7 +184,46 @@ class Board
     end
   end
 
+  def move_into_check?(origin, dest)
+    mover = lookup_square(origin)
+    board_copy = Board.new(state: copy_state)
+    board_copy.move_piece(origin, dest)
+    enemies = board_copy.player_pieces(mover.colour.eql?(:white) ? :black : :white)
+    test = enemies.any? { |e| e.check?(board_copy) }
+    # require 'pry-byebug'; binding.pry if test == false
+
+  end
+
+  def valid_moves?(colour)
+    player_pieces(colour).any? do |piece|
+      moves = piece.valid_moves_and_attacks(self)
+      moves_minus_location = moves.reject { |move| move == piece.location }
+      moves_minus_location.length.positive?
+    end
+  end
+
   private
+
+  def copy_state
+    state_copy = []
+    0.upto(7) do |i|
+      file_copy = state[i].map(&:clone)
+      state_copy << file_copy
+    end
+    state_copy
+  end
+
+  def all_pieces
+    all_squares.find_all { |e| e.is_a?(Piece) }
+  end
+
+  def all_squares
+    result = []
+    0.upto(7) do |y|
+      result += state[y]
+    end
+    result
+  end
 
   def check_castle(piece, row, dest)
     if castle_short?(piece, row, dest)
@@ -203,6 +270,7 @@ end
 
 class Display
   def print_board(board, highlights = [])
+    clear_window
     puts "\n\n\t  A B C D E F G H"
     7.downto(0) do |y|
       print_row(y, board, highlights)
@@ -211,6 +279,10 @@ class Display
   end
 
   private
+
+  def clear_window
+    puts "\e[H\e[2J"
+  end
 
   def print_row(y, board, highlights)
     print "\t#{y + 1} "
@@ -320,14 +392,14 @@ class Piece
     @move_list = move_list
   end
 
-  def valid_moves
+  def moves(board)
     transformers = move_list.transformers(move_directions)
-    transformers.flat_map { |transformer| move_search(transformer) }.sort
+    transformers.flat_map { |transformer| move_search(transformer, board) }.sort
   end
 
-  def valid_attacks
+  def attacks(board)
     transformers = move_list.transformers(attack_directions)
-    transformers.flat_map { |transformer| attack_search(transformer) }.sort
+    transformers.flat_map { |transformer| attack_search(transformer, board) }.sort
   end
 
   def move(destination, board)
@@ -335,14 +407,27 @@ class Piece
     age_opponent_pieces(board)
   end
 
-  private
-
-  def move_search(transformer)
-    move_list.move_search(location, transformer)
+  def check?(board)
+    attacks(board).any? { |coords| board.lookup_square(coords).is_a?(King) }
   end
 
-  def attack_search(transformer)
-    move_list.attack_search(location, colour, transformer)
+  def valid_moves_and_attacks(board)
+    moves_and_attacks = moves(board) + attacks(board)
+    remove_self_checking_moves(moves_and_attacks, board)
+  end
+
+  private
+
+  def remove_self_checking_moves(moves_and_attacks, board)
+    moves_and_attacks.reject { |dest| board.move_into_check?(location, dest) }
+  end
+
+  def move_search(transformer, board)
+    move_list.move_search(location, transformer, board)
+  end
+
+  def attack_search(transformer, board)
+    move_list.attack_search(location, colour, transformer, board)
   end
 
   def age_opponent_pieces(board)
@@ -362,21 +447,21 @@ class King < Piece
     @moved = false
   end
 
-  def valid_moves
+  def moves(board)
     transformers = move_list.transformers(move_directions)
-    transformers += move_list.transformers([:castle_short]) if move_list.castle_short?(self, location[1])
-    transformers += move_list.transformers([:castle_long]) if move_list.castle_long?(self, location[1])
-    transformers.flat_map { |transformer| move_search(transformer) }.sort
+    transformers += move_list.transformers([:castle_short]) if move_list.castle_short?(self, location[1], board)
+    transformers += move_list.transformers([:castle_long]) if move_list.castle_long?(self, location[1], board)
+    transformers.flat_map { |transformer| move_search(transformer, board) }.sort
   end
 
   private
 
-  def move_search(transformer)
-    move_list.move_search(location, transformer, stop_counter: 1)
+  def move_search(transformer, board)
+    move_list.move_search(location, transformer, board, stop_counter: 1)
   end
 
-  def attack_search(transformer)
-    move_list.attack_search(location, colour, transformer, stop_counter: 1)
+  def attack_search(transformer, board)
+    move_list.attack_search(location, colour, transformer, board, stop_counter: 1)
   end
 end
 
@@ -387,6 +472,11 @@ class Queen < Piece
     @move_directions = %i[up down left right up_left up_right down_left down_right]
     @attack_directions = move_directions
   end
+
+  # def attack_search(transformer, board)
+  #   require 'pry-byebug'; binding.pry if board.lookup_square([7,4]).is_a?(Queen)
+  #   super
+  # end
 end
 
 class Rook < Piece
@@ -421,12 +511,12 @@ class Knight < Piece
 
   private
 
-  def move_search(transformer)
-    move_list.move_search(location, transformer, stop_counter: 1)
+  def move_search(transformer, board)
+    move_list.move_search(location, transformer, board, stop_counter: 1)
   end
 
-  def attack_search(transformer)
-    move_list.attack_search(location, colour, transformer, stop_counter: 1)
+  def attack_search(transformer, board)
+    move_list.attack_search(location, colour, transformer, board, stop_counter: 1)
   end
 end
 
@@ -446,11 +536,11 @@ class Pawn < Piece
     @location = location
   end
 
-  def valid_attacks
+  def attacks(board)
     transformers = move_list.transformers(attack_directions)
-    transformers += move_list.transformers([:left]) if move_list.en_passant?(self, :left)
-    transformers += move_list.transformers([:right]) if move_list.en_passant?(self, :right)
-    transformers.flat_map { |transformer| attack_search(transformer) }.sort
+    transformers += move_list.transformers([:left]) if move_list.en_passant?(self, :left, board)
+    transformers += move_list.transformers([:right]) if move_list.en_passant?(self, :right, board)
+    transformers.flat_map { |transformer| attack_search(transformer, board) }.sort
   end
 
   def move(destination, board)
@@ -473,21 +563,20 @@ class Pawn < Piece
       (location[1] == 3 || location[1] == 4)
   end
 
-  def move_search(transformer)
+  def move_search(transformer, board)
     move_count = moved ? 1 : 2
-    move_list.move_search(location, transformer, stop_counter: move_count)
+    move_list.move_search(location, transformer, board, stop_counter: move_count)
   end
 
-  def attack_search(transformer)
-    move_list.attack_search(location, colour, transformer, stop_counter: 1)
+  def attack_search(transformer, board)
+    move_list.attack_search(location, colour, transformer, board, stop_counter: 1)
   end
 end
 
 class MoveList
-  attr_reader :board, :transforms
+  attr_reader :transforms
 
-  def initialize(board)
-    @board = board
+  def initialize
     @transforms = {
       up: ->(a, b) { [a, b + 1] },
       down: ->(a, b) { [a, b - 1] },
@@ -510,36 +599,44 @@ class MoveList
     }
   end
 
+  def inspect
+    "MoveList"
+  end
+
   def transformers(directions)
     directions.flat_map { |direction| transforms[direction] }
   end
 
-  def move_search(coords, search_lambda, results = [], stop_counter: nil)
+  def move_search(coords, search_lambda, board, results = [], stop_counter: nil)
     return results if stop_counter&.zero?
 
     dest_coords = search_lambda.call(coords[0], coords[1])
-    if traversible_space?(dest_coords)
+    return results if dest_coords.any?(&:negative?)
+
+    if traversible_space?(dest_coords, board)
       results << dest_coords
-      move_search(dest_coords, search_lambda, results, stop_counter: stop_counter&.pred)
+      move_search(dest_coords, search_lambda, board, results, stop_counter: stop_counter&.pred)
     else
       results
     end
   end
 
-  def attack_search(coords, colour, search_lambda, results = [], stop_counter: nil)
+  def attack_search(coords, colour, search_lambda, board, results = [], stop_counter: nil)
     return results if stop_counter&.zero?
 
     dest_coords = search_lambda.call(coords[0], coords[1])
-    if enemy_piece?(dest_coords, colour)
+    return results if dest_coords.any?(&:negative?)
+
+    if enemy_piece?(dest_coords, colour, board)
       results << dest_coords
-    elsif traversible_space?(dest_coords)
-      attack_search(dest_coords, colour, search_lambda, stop_counter: stop_counter&.pred)
+    elsif traversible_space?(dest_coords, board)
+      attack_search(dest_coords, colour, search_lambda, board, results, stop_counter: stop_counter&.pred)
     else
       results
     end
   end
 
-  def castle_short?(piece, row)
+  def castle_short?(piece, row, board)
     rook_coords = [7, row]
     maybe_rook = board.lookup_square(rook_coords)
 
@@ -549,7 +646,7 @@ class MoveList
       (5..6).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
   end
 
-  def castle_long?(piece, row)
+  def castle_long?(piece, row, board)
     rook_coords = [0, row]
     maybe_rook = board.lookup_square(rook_coords)
 
@@ -559,7 +656,7 @@ class MoveList
       (1..3).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
   end
 
-  def en_passant?(piece, direction)
+  def en_passant?(piece, direction, board)
     transform = transforms[direction]
     side_square = transform.call(*piece.location)
     contents = board.lookup_square(side_square)
@@ -569,15 +666,22 @@ class MoveList
 
   private
 
-  def traversible_space?(dest_coords)
+  def traversible_space?(dest_coords, board)
     destination = board.lookup_square(dest_coords)
     destination.eql?(:empty) && dest_coords.none?(&:negative?)
   end
 
-  def enemy_piece?(dest_coords, attacker_colour)
+  def enemy_piece?(dest_coords, attacker_colour, board)
     destination = board.lookup_square(dest_coords)
     destination.is_a?(Piece) && !destination.colour.eql?(attacker_colour)
   end
 end
 
-Chess.new
+board = Board.new
+move_list = MoveList.new
+display = Display.new
+setup = BoardSetup.new(board, move_list)
+chess = Chess.new(board, move_list, display)
+
+chess.setup_board(setup)
+chess.game_loop

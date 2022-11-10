@@ -3,6 +3,30 @@
 
 require_relative "../lib/chess"
 
+describe Chess do
+  let(:board) { Board.new }
+  let(:move_list) { MoveList.new }
+  subject(:chess) { described_class.new(board, move_list, Display.new) }
+
+  describe "#checkmate?" do
+    context "when legal moves remain and player is checked" do
+      before do
+      end
+
+      xit "returns false" do
+      end
+    end
+
+    context "when no legal moves remain and player is checked" do
+      before do
+      end
+
+      xit "returns false" do
+      end
+    end
+  end
+end
+
 describe Board do
   subject(:board) { described_class.new }
   let(:move_list) { double("MoveList") }
@@ -103,12 +127,70 @@ describe Board do
         end
       end
     end
+
+    describe "#all_valid_moves" do
+      context "when board is freshly set up" do
+        let(:setup) { BoardSetup.new(board, move_list) }
+
+        before do
+          setup.new_game
+        end
+
+        xit "returns valid moves" do
+        end
+      end
+    end
+  end
+
+  describe "#move_into_check?" do
+    let(:bishop) { Bishop.new([1, 3], :black, move_list) }
+    let(:king) { King.new([4, 0], :white, move_list) }
+    let(:pawn_defender) { Pawn.new([3, 1], :white, move_list) }
+    let(:piece) { instance_double("Piece") }
+    let(:move_list) { MoveList.new }
+
+    before do
+      board.place_piece(king, king.location)
+      board.place_piece(bishop, bishop.location)
+      board.place_piece(pawn_defender, pawn_defender.location)
+    end
+
+    it "does not change origin square" do
+      board.move_into_check?([3, 1], [3, 2])
+      expect(pawn_defender).to eql(board.lookup_square([3, 1]))
+    end
+
+    it "does not change destination square" do
+      dest_dup = board.lookup_square([3, 2]).dup
+      board.move_into_check?([3, 1], [3, 2])
+      expect(dest_dup).to eql(board.lookup_square([3, 2]))
+    end
+
+    context "when move would result in being checked" do
+      it "returns true" do
+        result = board.move_into_check?([3, 1], [3, 2])
+        expect(result).to be_truthy
+      end
+    end
+
+    context "when move would not result in being checked" do
+      let(:pawn_useless) { Pawn.new([4, 1], :white, move_list) }
+
+      before do
+        board.place_piece(pawn_useless, pawn_useless.location)
+      end
+
+      it "returns false" do
+        result = board.move_into_check?([4, 1], [4, 2])
+        expect(result).to be_falsey
+      end
+    end
   end
 end
 
 describe BoardSetup do
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
   subject(:setup) { described_class.new(board, move_list) }
 
   describe "#place_pawns" do
@@ -145,11 +227,12 @@ end
 describe King do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
   subject(:king) { described_class.new([4, 4], :white, move_list) }
 
-  describe "#valid_moves" do
+  describe "#moves" do
     before do
+      board.place_piece(king, king.location)
       board.place_piece(piece, [3, 4])
       board.place_piece(piece, [4, 5])
       board.place_piece(piece, [5, 3])
@@ -157,7 +240,7 @@ describe King do
 
     it "returns all legal movements for a given position" do
       legal_moves = [[3, 3], [3, 5], [4, 3], [5, 4], [5, 5]]
-      result = king.valid_moves
+      result = king.moves(board)
       expect(result).to eql(legal_moves)
     end
   end
@@ -166,11 +249,12 @@ end
 describe Queen do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
   subject(:queen) { described_class.new([4, 4], :white, move_list) }
 
   describe "#valid_moves" do
     before do
+      board.place_piece(queen, queen.location)
       board.place_piece(piece, [2, 4])
       board.place_piece(piece, [4, 5])
       board.place_piece(piece, [5, 3])
@@ -180,7 +264,7 @@ describe Queen do
     it "returns all legal movements for a given position" do
       legal_moves = [[1, 7], [2, 2], [2, 6], [3, 3], [3, 4], [3, 5], [4, 0], [4, 1],
                      [4, 2], [4, 3], [5, 4], [5, 5], [6, 4], [6, 6], [7, 4], [7, 7]]
-      result = queen.valid_moves
+      result = queen.moves(board)
       expect(result).to eql(legal_moves)
     end
   end
@@ -189,18 +273,19 @@ end
 describe Rook do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
   subject(:rook) { described_class.new([4, 4], :white, move_list) }
 
   describe "#valid_moves" do
     before do
+      board.place_piece(rook, rook.location)
       board.place_piece(piece, [6, 4])
       board.place_piece(piece, [4, 2])
     end
 
     it "returns all legal movements for a given position" do
       legal_moves = [[0, 4], [1, 4], [2, 4], [3, 4], [4, 3], [4, 5], [4, 6], [4, 7], [5, 4]]
-      result = rook.valid_moves
+      result = rook.moves(board)
       expect(result).to eql(legal_moves)
     end
   end
@@ -209,18 +294,19 @@ end
 describe Bishop do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
   subject(:bishop) { described_class.new([4, 4], :white, move_list) }
 
   describe "#valid_moves" do
     before do
+      board.place_piece(bishop, bishop.location)
       board.place_piece(piece, [2, 2])
       board.place_piece(piece, [7, 1])
     end
 
     it "returns all legal movements for a given position" do
       legal_moves = [[1, 7], [2, 6], [3, 3], [3, 5], [5, 3], [5, 5], [6, 2], [6, 6], [7, 7]]
-      result = bishop.valid_moves
+      result = bishop.moves(board)
       expect(result).to eql(legal_moves)
     end
   end
@@ -229,18 +315,19 @@ end
 describe Knight do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
   subject(:knight) { described_class.new([4, 4], :white, move_list) }
 
   describe "#valid_moves" do
     before do
+      board.place_piece(knight, knight.location)
       board.place_piece(piece, [3, 6])
       board.place_piece(piece, [2, 3])
     end
 
     it "returns all legal movements for a given position" do
       legal_moves = [[2, 5], [3, 2], [5, 2], [5, 6], [6, 3], [6, 5]]
-      result = knight.valid_moves
+      result = knight.moves(board)
       expect(result).to eql(legal_moves)
     end
   end
@@ -249,40 +336,46 @@ end
 describe Pawn do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new(board) }
+  let(:move_list) { MoveList.new }
 
   describe "#valid_moves" do
     context "when white Pawn hasn't moved yet" do
       subject(:pawn) { described_class.new([0, 1], :white, move_list) }
 
       context "when free to move" do
+        before do
+          board.place_piece(pawn, pawn.location)
+        end
+
         it "returns two legal moves" do
           legal_moves = [[0, 2], [0, 3]]
-          result = pawn.valid_moves
+          result = pawn.moves(board)
           expect(result).to eql(legal_moves)
         end
       end
 
       context "when blocked by a piece 2 squares away" do
         before do
+          board.place_piece(pawn, pawn.location)
           board.place_piece(piece, [0, 3])
         end
 
         it "returns one legal move" do
           legal_moves = [[0, 2]]
-          result = pawn.valid_moves
+          result = pawn.moves(board)
           expect(result).to eql(legal_moves)
         end
       end
 
       context "when blocked by a piece 1 square away" do
         before do
+          board.place_piece(pawn, pawn.location)
           board.place_piece(piece, [0, 2])
         end
 
         it "returns no legal moves" do
           legal_moves = []
-          result = pawn.valid_moves
+          result = pawn.moves(board)
           expect(result).to eql(legal_moves)
         end
       end
@@ -292,13 +385,14 @@ describe Pawn do
       subject(:pawn) { described_class.new([0, 7], :black, move_list) }
 
       before do
+        board.place_piece(pawn, pawn.location)
         pawn.moved = true
       end
 
       context "when free to move" do
         it "returns one legal move" do
           legal_moves = [[0, 6]]
-          result = pawn.valid_moves
+          result = pawn.moves(board)
           expect(result).to eql(legal_moves)
         end
       end
@@ -310,7 +404,7 @@ describe Pawn do
 
         it "returns no legal moves" do
           legal_moves = []
-          result = pawn.valid_moves
+          result = pawn.moves(board)
           expect(result).to eql(legal_moves)
         end
       end
@@ -329,7 +423,7 @@ describe Pawn do
 
       it "can be captured en passant" do
         pawn_move.move([5, 4], board)
-        results = pawn_capture.valid_attacks
+        results = pawn_capture.attacks(board)
         expect(results).to eql([[5, 4]])
       end
     end
@@ -343,7 +437,7 @@ describe Pawn do
       it "cannot be captured en passant" do
         pawn_move.move([5, 5], board)
         pawn_capture.move([5, 4], board)
-        results = pawn_capture.valid_attacks
+        results = pawn_capture.attacks(board)
         expect(results).to eql([])
       end
     end
@@ -357,7 +451,7 @@ describe Pawn do
       it "cannot be captured en passant" do
         pawn_move.move([5, 5], board)
         pawn_capture.move([4, 5], board)
-        results = pawn_capture.valid_attacks
+        results = pawn_capture.attacks(board)
         expect(results).to eql([])
       end
     end
@@ -373,7 +467,7 @@ describe Pawn do
       it "cannot be captured en passant" do
         pawn_move.move([5, 4], board)
         pawn_capture.move([4, 4], board)
-        results = pawn_capture.valid_attacks
+        results = pawn_capture.attacks(board)
         expect(results).to eql([])
       end
     end
@@ -382,7 +476,7 @@ end
 
 describe MoveList do
   let(:board) { Board.new }
-  subject(:move_list) { described_class.new(board) }
+  subject(:move_list) { described_class.new }
 
   describe "#move_search" do
     context "when searching upward" do
@@ -392,7 +486,7 @@ describe MoveList do
       context "when there are no pieces above" do
         it "returns all the squares above" do
           file_full = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_full)
         end
       end
@@ -406,7 +500,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_upto)
         end
       end
@@ -419,7 +513,7 @@ describe MoveList do
       context "when there are no pieces below" do
         it "returns all the squares below" do
           file_full = [[0, 6], [0, 5], [0, 4], [0, 3], [0, 2], [0, 1], [0, 0]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_full)
         end
       end
@@ -433,7 +527,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[0, 6], [0, 5], [0, 4], [0, 3], [0, 2]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_upto)
         end
       end
@@ -446,7 +540,7 @@ describe MoveList do
       context "when there are no pieces leftward" do
         it "returns all the squares leftward" do
           file_full = [[6, 0], [5, 0], [4, 0], [3, 0], [2, 0], [1, 0], [0, 0]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_full)
         end
       end
@@ -460,7 +554,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[6, 0], [5, 0], [4, 0], [3, 0], [2, 0]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_upto)
         end
       end
@@ -473,7 +567,7 @@ describe MoveList do
       context "when there are no pieces rightward" do
         it "returns all the squares rightward" do
           file_full = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_full)
         end
       end
@@ -487,7 +581,7 @@ describe MoveList do
 
         it "returns the squares up to the piece" do
           file_upto = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]]
-          result = move_list.move_search(start_square, search_lambda)
+          result = move_list.move_search(start_square, search_lambda, board)
           expect(result).to eql(file_upto)
         end
       end
@@ -502,7 +596,7 @@ describe MoveList do
 
       context "when there is no enemy" do
         it "returns empty array" do
-          result = move_list.attack_search(start_square, colour, search_lambda)
+          result = move_list.attack_search(start_square, colour, search_lambda, board)
           expect(result).to eql([])
         end
       end
@@ -515,7 +609,7 @@ describe MoveList do
         end
 
         it "returns the coords of the enemy" do
-          result = move_list.attack_search(start_square, colour, search_lambda)
+          result = move_list.attack_search(start_square, colour, search_lambda, board)
           expect(result).to eql([[0, 5]])
         end
       end
@@ -530,7 +624,7 @@ describe MoveList do
         end
 
         it "returns empty array" do
-          result = move_list.attack_search(start_square, colour, search_lambda)
+          result = move_list.attack_search(start_square, colour, search_lambda, board)
           expect(result).to eql([])
         end
       end
