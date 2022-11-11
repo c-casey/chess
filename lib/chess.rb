@@ -689,12 +689,3 @@ class MoveList
     destination.is_a?(Piece) && !destination.colour.eql?(attacker_colour)
   end
 end
-
-board = Board.new
-move_list = MoveList.new
-display = Display.new
-setup = BoardSetup.new(board, move_list)
-chess = Chess.new(board, move_list, display)
-
-chess.setup_board(setup)
-chess.game_loop
