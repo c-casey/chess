@@ -291,8 +291,8 @@ class Board
 
   def move_piece(origin, dest)
     piece = lookup_square(origin)
-    row = piece.location[1]
-    check_castle(piece, row, dest) if piece.is_a?(King)
+    rank = piece.location[1]
+    check_castle(piece, rank, dest) if piece.is_a?(King)
     clear_square(origin)
     place_piece(piece, dest)
     piece.location = dest
@@ -401,7 +401,7 @@ class Display
     clear_window
     puts "\n\n\t  A B C D E F G H"
     7.downto(0) do |y|
-      print_row(y, board, highlights)
+      print_rank(y, board, highlights)
     end
     puts "\t  A B C D E F G H\n\n"
   end
@@ -412,7 +412,7 @@ class Display
     puts "\e[H\e[2J"
   end
 
-  def print_row(y, board, highlights)
+  def print_rank(y, board, highlights)
     print "\t#{y + 1} "
     0.upto(7) do |x|
       square_contents = board.lookup_square([x, y])
