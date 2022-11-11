@@ -51,7 +51,7 @@ class Chess
   end
 
   def turn_intro_text
-    print "Check! " if checked?
+    print "Check! " if board.checked?(current_player)
     print "Your turn, #{current_player}! "
   end
 
@@ -156,14 +156,10 @@ class Chess
     current_player.eql?(:white) ? :black : :white
   end
 
-  def checked?
-    board.player_pieces(opponent).any? { |piece| piece.check?(board) }
-  end
-
   def check_end_condition
     return if board.valid_moves?(current_player)
 
-    self.winner = checked? ? opponent : :tie
+    self.winner = board.checked?(current_player) ? opponent : :tie
   end
 
   def declare_checkmate
@@ -236,9 +232,7 @@ class Board
     board_copy = Board.new(state: copy_state)
     board_copy.move_piece(origin, dest)
     enemies = board_copy.player_pieces(mover.colour.eql?(:white) ? :black : :white)
-    test = enemies.any? { |e| e.check?(board_copy) }
-    # require 'pry-byebug'; binding.pry if test == false
-
+    enemies.any? { |e| e.check?(board_copy) }
   end
 
   def valid_moves?(colour)
@@ -247,6 +241,21 @@ class Board
       moves_minus_location = moves.reject { |move| move == piece.location }
       moves_minus_location.length.positive?
     end
+  end
+
+  def checked?(current_player)
+    opponent = current_player.eql?(:white) ? :black : :white
+    player_pieces(opponent).any? { |piece| piece.check?(self) }
+  end
+
+  def castle_short?(king, rank)
+    maybe_rook = lookup_square([7, rank])
+    range_empty?(5, 6, rank) && castleable?(king, maybe_rook)
+  end
+
+  def castle_long?(king, rank)
+    maybe_rook = lookup_square([0, rank])
+    range_empty?(1, 3, rank) && castleable?(king, maybe_rook)
   end
 
   private
@@ -272,46 +281,28 @@ class Board
     result
   end
 
-  def check_castle(piece, row, dest)
-    if castle_short?(piece, row, dest)
-      castle_rook_short(row)
-    elsif castle_long?(piece, row, dest)
-      castle_rook_long(row)
+  def check_castle(king, rank, dest)
+    if castle_short?(king, rank) && dest == [6, rank]
+      castle_rook(rank, 7, 5)
+    elsif castle_long?(king, rank) && dest == [2, rank]
+      castle_rook(rank, 0, 3)
     end
   end
 
-  def castle_short?(piece, row, dest)
-    rook_coords = [7, row]
-    maybe_rook = lookup_square(rook_coords)
-
-    dest == [6, row] &&
-      piece.moved == false &&
-      maybe_rook.is_a?(Rook) &&
-      maybe_rook.moved == false &&
-      (5..6).map { |i| lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
+  def castleable?(king, maybe_rook)
+    maybe_rook.is_a?(Rook) &&
+      !king.moved &&
+      !checked?(king.colour) &&
+      !maybe_rook.moved
   end
 
-  def castle_long?(piece, row, dest)
-    rook_coords = [0, row]
-    maybe_rook = lookup_square(rook_coords)
-
-    dest == [2, row] &&
-      piece.moved == false &&
-      maybe_rook.is_a?(Rook) &&
-      maybe_rook.moved == false &&
-      (1..3).map { |i| lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
+  def range_empty?(lower, upper, rank)
+    (lower..upper).map { |i| lookup_square([i, rank]) }.all? { |e| e.eql?(:empty) }
   end
 
-  def castle_rook_short(row)
-    rook_coords = [7, row]
-    move_piece(rook_coords, [5, row])
-    clear_square(rook_coords)
-  end
-
-  def castle_rook_long(row)
-    rook_coords = [0, row]
-    move_piece(rook_coords, [3, row])
-    clear_square(rook_coords)
+  def castle_rook(rank, origin_file, dest_file)
+    rook_coords = [origin_file, rank]
+    move_piece(rook_coords, [dest_file, rank])
   end
 end
 
@@ -496,8 +487,8 @@ class King < Piece
 
   def moves(board)
     transformers = move_list.transformers(move_directions)
-    transformers += move_list.transformers([:castle_short]) if move_list.castle_short?(self, location[1], board)
-    transformers += move_list.transformers([:castle_long]) if move_list.castle_long?(self, location[1], board)
+    transformers += move_list.transformers([:castle_short]) if board.castle_short?(self, location[1])
+    transformers += move_list.transformers([:castle_long]) if board.castle_long?(self, location[1])
     transformers.flat_map { |transformer| move_search(transformer, board) }.sort
   end
 
@@ -519,11 +510,6 @@ class Queen < Piece
     @move_directions = %i[up down left right up_left up_right down_left down_right]
     @attack_directions = move_directions
   end
-
-  # def attack_search(transformer, board)
-  #   require 'pry-byebug'; binding.pry if board.lookup_square([7,4]).is_a?(Queen)
-  #   super
-  # end
 end
 
 class Rook < Piece
@@ -681,26 +667,6 @@ class MoveList
     else
       results
     end
-  end
-
-  def castle_short?(piece, row, board)
-    rook_coords = [7, row]
-    maybe_rook = board.lookup_square(rook_coords)
-
-    piece.moved == false &&
-      maybe_rook.is_a?(Rook) &&
-      maybe_rook.moved == false &&
-      (5..6).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
-  end
-
-  def castle_long?(piece, row, board)
-    rook_coords = [0, row]
-    maybe_rook = board.lookup_square(rook_coords)
-
-    piece.moved == false &&
-      maybe_rook.is_a?(Rook) &&
-      maybe_rook.moved == false &&
-      (1..3).map { |i| board.lookup_square([i, row]) }.all? { |e| e.eql?(:empty) }
   end
 
   def en_passant?(piece, direction, board)
