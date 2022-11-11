@@ -23,7 +23,8 @@ class Chess
   end
 
   def setup_board(preparer)
-    preparer.new_game
+    setup = preparer.new(board, move_list)
+    setup.new_game
   end
 
   def game_loop
