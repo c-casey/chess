@@ -5,24 +5,62 @@ require_relative "../lib/chess"
 
 describe Chess do
   let(:board) { Board.new }
-  let(:move_list) { instance_double("MoveList") }
+  let(:move_list) { MoveList.new }
   let(:display) { instance_double("Display") }
   subject(:chess) { described_class.new(board, move_list, display) }
 
-  describe "#checkmate?" do
+  describe "#check_end_condition" do
     context "when legal moves remain and player is checked" do
+      let(:rook) { Rook.new([7, 0], :white, move_list) }
+      let(:king) { King.new([7, 7], :black, move_list) }
+
       before do
+        board.place_piece(rook, rook.location)
+        board.place_piece(king, king.location)
+        chess.current_player = :black
       end
 
-      xit "returns false" do
+      it "returns nil" do
+        result = chess.check_end_condition
+        expect(result).to be_nil
       end
     end
 
     context "when no legal moves remain and player is checked" do
+      let(:rook1) { Rook.new([7, 0], :white, move_list) }
+      let(:rook2) { Rook.new([6, 0], :white, move_list) }
+      let(:king) { King.new([7, 7], :black, move_list) }
+
       before do
+        board.place_piece(rook1, rook1.location)
+        board.place_piece(rook2, rook2.location)
+        board.place_piece(king, king.location)
+        chess.current_player = :black
       end
 
-      xit "returns false" do
+      it "returns opponent" do
+        result = chess.check_end_condition
+        expect(result).to eql(:white)
+      end
+    end
+
+    context "when no legal moves remain and player is not checked" do
+      let(:rook1) { Rook.new([4, 3], :white, move_list) }
+      let(:rook2) { Rook.new([7, 0], :white, move_list) }
+      let(:queen) { Queen.new([5, 0], :white, move_list) }
+      let(:king) { King.new([6, 2], :black, move_list) }
+
+      before do
+        board.place_piece(rook1, rook1.location)
+        board.place_piece(rook2, rook2.location)
+        board.place_piece(queen, queen.location)
+        board.place_piece(king, king.location)
+        chess.current_player = :black
+      end
+
+      it "returns tie" do
+        result = chess.check_end_condition
+        expect(result).to eql(:tie)
       end
     end
   end

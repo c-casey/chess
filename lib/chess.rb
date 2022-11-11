@@ -36,8 +36,6 @@ class Chess
     winner.eql?(:tie) ? declare_stalemate : declare_checkmate
   end
 
-  private
-
   def take_turn
     turn_intro_text
     piece = request_origin
@@ -49,6 +47,14 @@ class Chess
     promote(piece) if promotable_pawn?(piece)
     swap_players
   end
+
+  def check_end_condition
+    return if board.valid_moves?(current_player)
+
+    self.winner = board.checked?(current_player) ? opponent : :tie
+  end
+
+  private
 
   def turn_intro_text
     print "Check! " if board.checked?(current_player)
@@ -154,12 +160,6 @@ class Chess
 
   def opponent
     current_player.eql?(:white) ? :black : :white
-  end
-
-  def check_end_condition
-    return if board.valid_moves?(current_player)
-
-    self.winner = board.checked?(current_player) ? opponent : :tie
   end
 
   def declare_checkmate
