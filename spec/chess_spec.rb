@@ -279,8 +279,6 @@ describe BoardSetup do
 end
 
 describe King do
-  let(:piece) { instance_double("Piece") }
-  let(:board) { Board.new }
   let(:move_list) { MoveList.new }
   let(:board) { Board.new }
 

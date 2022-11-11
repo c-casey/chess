@@ -34,19 +34,38 @@ class Chess
       check_end_condition
     end
     display.print_board(board)
-    winner.eql?(:tie) ? declare_stalemate : declare_checkmate
+    determine_end_state(winner)
   end
 
   def take_turn
     turn_intro_text
-    piece = request_origin
+    return if player_choice.eql?(:restart)
+
+    swap_players
+  end
+
+  def player_choice
+    choice = request_choice
+    choice.is_a?(Piece) ? piece_action(choice) : game_action(choice)
+  end
+
+  def piece_action(piece)
     display_moves(piece)
     destination = request_destination(piece)
-    return if piece == board.lookup_square(destination)
+    return :restart if piece == board.lookup_square(destination)
 
     piece.move(destination, board)
     promote(piece) if promotable_pawn?(piece)
-    swap_players
+  end
+
+  def game_action(choice)
+    case choice
+    when :draw
+      draw
+    when :resign
+      resign
+    end
+    :restart
   end
 
   def check_end_condition
@@ -62,13 +81,56 @@ class Chess
     print "Your turn, #{current_player}! "
   end
 
-  def request_origin
-    print "Select a piece: "
-    piece = board.coords_to_piece(read_selection)
+  def request_choice
+    print "Select a piece, or 'resign'/'draw'/'save': "
+    handle_choice(read_choice)
+  end
+
+  def read_choice
+    selection = $stdin.gets.chomp.downcase
+    return selection if valid_option?(selection)
+
+    print "Invalid selection! Try again: "
+    read_choice
+  end
+
+  def handle_choice(selection)
+    if %w[draw resign save quit].member?(selection)
+      selection.to_sym
+    else
+      find_piece(selection)
+    end
+  end
+
+  def find_piece(selection)
+    piece = board.coords_to_piece(selection)
     return piece if valid_piece?(piece)
 
     print "Invalid selection! "
-    request_origin
+    request_choice
+  end
+
+  def draw
+    print "#{opponent.capitalize}, agree to draw? [y/n]: "
+    confirm_flag_set(:draw)
+  end
+
+  def resign
+    print "#{current_player.capitalize}, are you sure you wish to resign? [y/n]: "
+    confirm_flag_set(:resign)
+  end
+
+  def confirm_flag_set(flag)
+    choice = $stdin.gets.chomp.downcase
+    case choice
+    when "y"
+      self.winner = flag
+    when "n"
+      :restart
+    else
+      print "Invalid input! "
+      resign
+    end
   end
 
   def promote(pawn)
@@ -123,23 +185,29 @@ class Chess
 
   def request_destination(piece)
     print "Select a destination, or select currently highlighted piece to choose a different one: "
-    destination = board.coords_to_location(read_selection)
-    return destination if valid_move?(piece, destination)
-    return destination if piece.location.eql?(destination)
+    destination = board.coords_to_location(read_destination)
+    return destination if valid_move?(piece, destination) ||
+                          piece.location.eql?(destination)
 
     print "Invalid move! "
     request_destination(piece)
   end
 
-  def read_selection
+  def read_destination
     selection = $stdin.gets.chomp.downcase
-    return selection if valid_input?(selection)
+    return selection if coord_input?(selection)
 
     print "Invalid selection! Try again: "
-    read_selection
+    read_destination
   end
 
-  def valid_input?(selection)
+  def valid_option?(selection)
+    coord_input?(selection) ||
+      selection == "resign" ||
+      selection == "draw"
+  end
+
+  def coord_input?(selection)
     selection.length == 2 &&
       selection[0] >= "a" &&
       selection[0] <= "h" &&
@@ -163,12 +231,33 @@ class Chess
     current_player.eql?(:white) ? :black : :white
   end
 
+  def determine_end_state(winner)
+    case winner
+    when :tie
+      declare_stalemate
+    when :draw
+      declare_draw
+    when :resign
+      declare_resignation
+    else
+      declare_checkmate
+    end
+  end
+
   def declare_checkmate
     puts "Checkmate! #{winner.capitalize} wins!"
   end
 
   def declare_stalemate
     puts "Stalemate!"
+  end
+
+  def declare_draw
+    puts "Draw!"
+  end
+
+  def declare_resignation
+    puts "#{opponent.capitalize} wins by resignation!"
   end
 end
 
