@@ -5,8 +5,9 @@ require_relative "../lib/chess"
 
 describe Chess do
   let(:board) { Board.new }
-  let(:move_list) { MoveList.new }
-  subject(:chess) { described_class.new(board, move_list, Display.new) }
+  let(:move_list) { instance_double("MoveList") }
+  let(:display) { instance_double("Display") }
+  subject(:chess) { described_class.new(board, move_list, display) }
 
   describe "#checkmate?" do
     context "when legal moves remain and player is checked" do
@@ -22,6 +23,35 @@ describe Chess do
       end
 
       xit "returns false" do
+      end
+    end
+  end
+
+  describe "#promote_pawn?" do
+    context "when pawn is ready to be promoted" do
+      let(:pawn) { Pawn.new([1, 7], :white, move_list) }
+
+      it "returns true" do
+        result = chess.send :promotable_pawn?, pawn
+        expect(result).to be_truthy
+      end
+    end
+
+    context "when pawn is not ready to be promoted" do
+      let(:pawn) { Pawn.new([4, 1], :black, move_list) }
+
+      it "returns false" do
+        result = chess.send :promotable_pawn?, pawn
+        expect(result).to be_falsey
+      end
+    end
+
+    context "when piece other than pawn is on opposite back rank" do
+      let(:knight) { Knight.new([5, 7], :white, move_list) }
+
+      it "returns false" do
+        result = chess.send :promotable_pawn?, knight
+        expect(result).to be_falsey
       end
     end
   end
@@ -124,19 +154,6 @@ describe Board do
           board.move_piece([4, 7], [6, 7])
           result = board.lookup_square([0, 7])
           expect(result).to be_an_instance_of(Rook)
-        end
-      end
-    end
-
-    describe "#all_valid_moves" do
-      context "when board is freshly set up" do
-        let(:setup) { BoardSetup.new(board, move_list) }
-
-        before do
-          setup.new_game
-        end
-
-        xit "returns valid moves" do
         end
       end
     end

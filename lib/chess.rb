@@ -46,6 +46,7 @@ class Chess
     return if piece == board.lookup_square(destination)
 
     piece.move(destination, board)
+    promote(piece) if promotable_pawn?(piece)
     swap_players
   end
 
@@ -61,6 +62,52 @@ class Chess
 
     print "Invalid selection! "
     request_origin
+  end
+
+  def promote(pawn)
+    piece_class = request_promotion_piece
+    piece = piece_class.new(pawn.location, current_player, move_list)
+    board.place_piece(piece, piece.location)
+  end
+
+  def promotable_pawn?(piece)
+    piece.is_a?(Pawn) && crossed_board?(piece)
+  end
+
+  def crossed_board?(piece)
+    finish_rank = current_player.eql?(:white) ? 7 : 0
+    piece.location[1].eql?(finish_rank)
+  end
+
+  def request_promotion_piece
+    print "Select a piece to trade for [Q, R, B, N]: "
+    response = read_promotion_piece
+    lookup_promotion_piece(response)
+  end
+
+  def read_promotion_piece
+    piece = $stdin.gets.chomp.downcase
+    return piece if valid_promotion_piece?(piece)
+
+    print "Invalid selection! "
+    read_promotion_piece
+  end
+
+  def lookup_promotion_piece(string)
+    case string
+    when "q"
+      Queen
+    when "r"
+      Rook
+    when "b"
+      Bishop
+    when "n"
+      Knight
+    end
+  end
+
+  def valid_promotion_piece?(piece)
+    %w[q r b n].member?(piece)
   end
 
   def display_moves(piece)
