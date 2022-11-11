@@ -282,9 +282,30 @@ describe King do
   let(:piece) { instance_double("Piece") }
   let(:board) { Board.new }
   let(:move_list) { MoveList.new }
-  subject(:king) { described_class.new([4, 4], :white, move_list) }
+  let(:board) { Board.new }
+
+  describe "#valid_moves_and_attacks" do
+    context "when in check" do
+      subject(:king) { described_class.new([4, 7], :black, move_list) }
+      let(:rook) { Rook.new([4, 3], :white, move_list) }
+
+      before do
+        board.place_piece(king, king.location)
+        board.place_piece(rook, rook.location)
+      end
+
+      it "doesn't allow castling" do
+        legal_moves = [[3, 6], [3, 7], [5, 6], [5, 7]]
+        result = king.valid_moves_and_attacks(board)
+        expect(result).to eql(legal_moves)
+      end
+    end
+  end
 
   describe "#moves" do
+    let(:piece) { instance_double("Piece") }
+    subject(:king) { described_class.new([4, 4], :white, move_list) }
+
     before do
       board.place_piece(king, king.location)
       board.place_piece(piece, [3, 4])
