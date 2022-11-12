@@ -59,12 +59,7 @@ class Chess
   end
 
   def game_action(choice)
-    case choice
-    when :draw
-      draw
-    when :resign
-      resign
-    end
+    send(choice)
     :restart
   end
 
@@ -118,6 +113,11 @@ class Chess
   def resign
     print "#{current_player.capitalize}, are you sure you wish to resign? [y/n]: "
     confirm_flag_set(:resign)
+  end
+
+  def quit
+    print "Really quit? Unsaved progress will be lost! [y to confirm]: "
+    abort("Thanks for playing!") if $stdin.gets.chomp.downcase == "y"
   end
 
   def confirm_flag_set(flag)
@@ -204,7 +204,8 @@ class Chess
   def valid_option?(selection)
     coord_input?(selection) ||
       selection == "resign" ||
-      selection == "draw"
+      selection == "draw"   ||
+      selection == "quit"
   end
 
   def coord_input?(selection)
