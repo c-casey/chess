@@ -1,6 +1,9 @@
 # lib/chess.rb
 # frozen_string_literal: true
 
+require "msgpack"
+MessagePack::DefaultFactory.register_type(0x00, Symbol)
+
 class String
   def bg_dark =       "\e[41m#{self}\e[0m"
   def bg_light =      "\e[45m#{self}\e[0m"
@@ -11,8 +14,8 @@ class String
 end
 
 class Chess
-  attr_accessor :current_player, :winner
-  attr_reader :board, :move_list, :display
+  attr_accessor :current_player, :winner, :board
+  attr_reader :move_list, :display
 
   def initialize(board, move_list, display)
     @board = board
@@ -77,7 +80,7 @@ class Chess
   end
 
   def request_choice
-    print "Select a piece, or 'resign'/'draw'/'save': "
+    print "Select a piece, or 'resign'/'draw'/'save'/'quit': "
     handle_choice(read_choice)
   end
 
@@ -90,7 +93,7 @@ class Chess
   end
 
   def handle_choice(selection)
-    if %w[draw resign save quit].member?(selection)
+    if %w[draw resign save load quit].member?(selection)
       selection.to_sym
     else
       find_piece(selection)
@@ -113,6 +116,69 @@ class Chess
   def resign
     print "#{current_player.capitalize}, are you sure you wish to resign? [y/n]: "
     confirm_flag_set(:resign)
+  end
+
+  def save
+    board_packed = board.copy_state.map do |file|
+      file.map(&:to_msgpack)
+    end.to_msgpack
+    write_save(request_save_name, board_packed)
+  end
+
+  def write_save(name, data)
+    path = "#{Dir.pwd}/lib/save_data/"
+    Dir.mkdir(path) unless Dir.exist?(path)
+    Dir.chdir(path) do
+      File.binwrite("#{name}.dat", data)
+    end
+  end
+
+  def request_save_name
+    print "Save name [alphanumeric]: "
+    name = $stdin.gets.chomp
+    return name if name =~ /^\p{Alnum}+$/
+
+    puts "Special chars not allowed! "
+    request_save_name
+  end
+
+  def load
+    saves = save_files
+    list_files(saves)
+    name = select_save_file(saves)
+    return unless name
+
+    selected_save = File.binread("#{Dir.pwd}/lib/save_data/#{name}.dat")
+    unpacked_save = unpack_save(selected_save)
+    self.board = BoardSetup.new(board, move_list).populate_board(unpacked_save)
+  end
+
+  def save_files
+    files = Dir.children("#{Dir.pwd}/lib/save_data/")
+    files.select { |e| e.split(".").last == "dat" }
+  end
+
+  def list_files(files)
+    1.upto(files.length) { |i| puts "[#{i}] #{files[i - 1]}" }
+  end
+
+  def select_save_file(saves)
+    print "Enter a number to load, or 'back' to return: "
+    number = gets.chomp.downcase
+    return false if number == "back"
+    return saves[number.to_i.pred].split(".").first if valid_save_number?(number, saves)
+
+    print "Invalid selection! "
+    select_save_file(saves)
+  end
+
+  def valid_save_number?(number, save_array)
+    number =~ /^\d+$/ && number.to_i <= save_array.length && number.to_i.positive?
+  end
+
+  def unpack_save(save)
+    semi_unpacked = MessagePack.unpack(save)
+    semi_unpacked.map { |file| file.map { |square| MessagePack.unpack(square) } }
   end
 
   def quit
@@ -205,6 +271,8 @@ class Chess
     coord_input?(selection) ||
       selection == "resign" ||
       selection == "draw"   ||
+      selection == "save"   ||
+      selection == "load"   ||
       selection == "quit"
   end
 
@@ -349,8 +417,6 @@ class Board
     range_empty?(1, 3, rank) && castleable?(king, maybe_rook)
   end
 
-  private
-
   def copy_state
     state_copy = []
     0.upto(7) do |i|
@@ -359,6 +425,17 @@ class Board
     end
     state_copy
   end
+
+  def to_msgpack(_arg)
+    array = []
+    0.upto(7) do |i|
+      file_copy = state[i].to_msgpack
+      array << file_copy
+    end
+    array
+  end
+
+  private
 
   def all_pieces
     all_squares.find_all { |e| e.is_a?(Piece) }
@@ -489,6 +566,30 @@ class BoardSetup
     end
   end
 
+  def populate_board(array)
+    state = array.map do |file|
+      file.map do |square|
+        if square.is_a?(Hash)
+          piece_type = square[:piece_type]
+          class_name = MessagePack.unpack(piece_type)
+          initialize_piece(class_name, square)
+        else
+          square
+        end
+      end
+    end
+    Board.new(state: state)
+  end
+
+  def initialize_piece(piece_type, obj)
+    location = MessagePack.unpack(obj[:@location])
+    colour = MessagePack.unpack(obj[:@colour])
+    piece = Object.const_get(piece_type).new(location, colour, move_list)
+    require 'pry-byebug'; binding.pry if board.nil?
+
+    board.place_piece(piece, location)
+  end
+
   def file_to_piece(file)
     case file
     when 0, 7
@@ -544,6 +645,22 @@ class Piece
     moves_and_attacks = moves(board) + attacks(board)
     remove_self_checking_moves(moves_and_attacks, board)
   end
+
+  def to_msgpack
+    piece = {}
+    piece[:piece_type] = self.class.name.to_msgpack
+    instance_variables.map do |var|
+      piece[var] = instance_variable_get(var).to_msgpack
+    end
+    MessagePack.dump(piece)
+  end
+
+  # def self.from_msgpack(hash)
+  #   object = MessagePack.load(hash)
+  #   object.each_key do |key|
+  #     instance_variable_set(key, object[key])
+  #   end
+  # end
 
   private
 
@@ -725,6 +842,10 @@ class MoveList
 
   def inspect
     "MoveList"
+  end
+
+  def to_msgpack
+    MessagePack.dump(self.class.to_s)
   end
 
   def transformers(directions)
