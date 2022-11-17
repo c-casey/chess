@@ -80,7 +80,7 @@ class Chess
   end
 
   def request_choice
-    print "Select a piece, or 'resign'/'draw'/'save'/'quit': "
+    print "Select a piece, or 'resign'/'draw'/'save'/'load'/'quit': "
     handle_choice(read_choice)
   end
 
@@ -582,12 +582,15 @@ class BoardSetup
   end
 
   def initialize_piece(piece_type, obj)
-    location = MessagePack.unpack(obj[:@location])
-    colour = MessagePack.unpack(obj[:@colour])
+    location = unpack(obj, :@location)
+    colour = unpack(obj, :@colour)
     piece = Object.const_get(piece_type).new(location, colour, move_list)
-    require 'pry-byebug'; binding.pry if board.nil?
-
+    piece.moved = unpack(obj, :@moved) if piece.instance_variables.member?(:@moved)
     board.place_piece(piece, location)
+  end
+
+  def unpack(obj, variable)
+    MessagePack.unpack(obj[variable])
   end
 
   def file_to_piece(file)
@@ -654,13 +657,6 @@ class Piece
     end
     MessagePack.dump(piece)
   end
-
-  # def self.from_msgpack(hash)
-  #   object = MessagePack.load(hash)
-  #   object.each_key do |key|
-  #     instance_variable_set(key, object[key])
-  #   end
-  # end
 
   private
 
