@@ -17,17 +17,12 @@ class Chess
   attr_accessor :current_player, :winner, :board
   attr_reader :move_list, :display
 
-  def initialize(board, move_list, display)
-    @board = board
-    @move_list = move_list
-    @display = display
+  def initialize
+    @board = BoardSetup.new.new_game
+    @move_list = MoveList.new
+    @display = Display.new
     @current_player = :white
     @winner = nil
-  end
-
-  def setup_board(preparer)
-    setup = preparer.new(board, move_list)
-    setup.new_game
   end
 
   def game_loop
@@ -119,66 +114,14 @@ class Chess
   end
 
   def save
-    board_packed = board.copy_state.map do |file|
-      file.map(&:to_msgpack)
-    end.to_msgpack
-    write_save(request_save_name, board_packed)
-  end
-
-  def write_save(name, data)
-    path = "#{Dir.pwd}/lib/save_data/"
-    Dir.mkdir(path) unless Dir.exist?(path)
-    Dir.chdir(path) do
-      File.binwrite("#{name}.dat", data)
-    end
-  end
-
-  def request_save_name
-    print "Save name [alphanumeric]: "
-    name = $stdin.gets.chomp
-    return name if name =~ /^\p{Alnum}+$/
-
-    puts "Special chars not allowed! "
-    request_save_name
+    SaveData.new.save(board)
   end
 
   def load
-    saves = save_files
-    list_files(saves)
-    name = select_save_file(saves)
-    return unless name
+    result = SaveData.new.load
+    return result if result == :restart
 
-    selected_save = File.binread("#{Dir.pwd}/lib/save_data/#{name}.dat")
-    unpacked_save = unpack_save(selected_save)
-    self.board = BoardSetup.new(board, move_list).populate_board(unpacked_save)
-  end
-
-  def save_files
-    files = Dir.children("#{Dir.pwd}/lib/save_data/")
-    files.select { |e| e.split(".").last == "dat" }
-  end
-
-  def list_files(files)
-    1.upto(files.length) { |i| puts "[#{i}] #{files[i - 1]}" }
-  end
-
-  def select_save_file(saves)
-    print "Enter a number to load, or 'back' to return: "
-    number = gets.chomp.downcase
-    return false if number == "back"
-    return saves[number.to_i.pred].split(".").first if valid_save_number?(number, saves)
-
-    print "Invalid selection! "
-    select_save_file(saves)
-  end
-
-  def valid_save_number?(number, save_array)
-    number =~ /^\d+$/ && number.to_i <= save_array.length && number.to_i.positive?
-  end
-
-  def unpack_save(save)
-    semi_unpacked = MessagePack.unpack(save)
-    semi_unpacked.map { |file| file.map { |square| MessagePack.unpack(square) } }
+    self.board = result
   end
 
   def quit
@@ -327,6 +270,75 @@ class Chess
 
   def declare_resignation
     puts "#{opponent.capitalize} wins by resignation!"
+  end
+end
+
+class SaveData
+  def save_path
+    File.join(File.dirname(__FILE__), "/save_data/")
+  end
+
+  def save(board)
+    board_packed = board.copy_state.map do |file|
+      file.map(&:to_msgpack)
+    end.to_msgpack
+    write_save(request_save_name, board_packed)
+  end
+
+  def write_save(name, data)
+    Dir.mkdir(save_path) unless Dir.exist?(save_path)
+    Dir.chdir(save_path) do
+      File.binwrite("#{name}.dat", data)
+    end
+  end
+
+  def request_save_name
+    print "Save name [alphanumeric]: "
+    name = $stdin.gets.chomp
+    return name if name =~ /^\p{Alnum}+$/
+
+    puts "Special chars not allowed! "
+    request_save_name
+  end
+
+  def load
+    saves = save_files
+    list_files(saves)
+    name = select_save_file(saves)
+    return :restart unless name
+
+    file_path = File.join(save_path, "#{name}.dat")
+    selected_save = File.binread(file_path)
+    unpacked_save = unpack_save(selected_save)
+    BoardSetup.new.generate_board_from(unpacked_save)
+  end
+
+  def save_files
+    files = Dir.children(save_path)
+    files.select { |e| e.split(".").last == "dat" }
+  end
+
+  def list_files(files)
+    1.upto(files.length) { |i| puts "[#{i}] #{files[i - 1]}" }
+  end
+
+  def select_save_file(saves)
+    print "Enter a number to load, or 'back' to return: "
+    number = gets.chomp.downcase
+    return false if number == "back"
+    return saves[number.to_i.pred].split(".").first if valid_save_number?(number, saves)
+
+    print "Invalid selection! "
+    select_save_file(saves)
+  end
+
+  def valid_save_number?(number, save_array)
+    number =~ /^\d+$/ && number.to_i <= save_array.length && number.to_i.positive?
+  end
+
+  def unpack_save(save)
+    semi_unpacked = MessagePack.unpack(save)
+    semi_unpacked.map { |file| file.map { |square| MessagePack.unpack(square) } }
   end
 end
 
@@ -537,22 +549,22 @@ class Display
 end
 
 class BoardSetup
-  attr_accessor :board
   attr_reader :move_list
 
-  def initialize(board, move_list)
-    @board = board
-    @move_list = move_list
+  def initialize
+    @move_list = MoveList.new
   end
 
   def new_game
-    place_pawns(:white)
-    place_pieces(:white)
-    place_pawns(:black)
-    place_pieces(:black)
+    board = Board.new
+    place_pawns(:white, board)
+    place_pieces(:white, board)
+    place_pawns(:black, board)
+    place_pieces(:black, board)
+    board
   end
 
-  def place_pawns(colour)
+  def place_pawns(colour, board)
     starting_rank = colour.eql?(:white) ? 1 : 6
     0.upto(7) do |file|
       pawn = Pawn.new([file, starting_rank], colour, move_list)
@@ -560,7 +572,7 @@ class BoardSetup
     end
   end
 
-  def place_pieces(colour)
+  def place_pieces(colour, board)
     starting_rank = colour.eql?(:white) ? 0 : 7
     0.upto(7) do |file|
       piece = file_to_piece(file).new([file, starting_rank], colour, move_list)
@@ -568,7 +580,7 @@ class BoardSetup
     end
   end
 
-  def populate_board(array)
+  def generate_board_from(array)
     state = array.map do |file|
       file.map do |square|
         if square.is_a?(Hash)
@@ -588,7 +600,7 @@ class BoardSetup
     colour = unpack(obj, :@colour)
     piece = Object.const_get(piece_type).new(location, colour, move_list)
     piece.moved = unpack(obj, :@moved) if piece.instance_variables.member?(:@moved)
-    board.place_piece(piece, location)
+    piece
   end
 
   def unpack(obj, variable)
