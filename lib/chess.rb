@@ -10,7 +10,7 @@ class String
   def bg_dark_hl =    "\e[44m#{self}\e[0m"
   def bg_light_hl =   "\e[46m#{self}\e[0m"
   def bg_threatened = "\e[31m#{self}\e[0m"
-  def bg_selected =   "\e[40m#{self}\e[0m"
+  def bg_selected =   "\e[7m#{self}\e[0m"
 end
 
 class Chess
@@ -246,7 +246,7 @@ class Chess
   end
 
   def display_moves(piece)
-    display.print_board(board, piece.valid_moves_and_attacks(board))
+    display.print_board(board, piece.valid_moves_and_attacks(board), piece.location)
   end
 
   def request_destination(piece)
@@ -475,11 +475,11 @@ class Board
 end
 
 class Display
-  def print_board(board, highlights = [])
+  def print_board(board, highlights = [], selected = [])
     clear_window
     puts "\n\n\t  A B C D E F G H"
     7.downto(0) do |y|
-      print_rank(y, board, highlights)
+      print_rank(y, board, highlights, selected)
     end
     puts "\t  A B C D E F G H\n\n"
   end
@@ -490,20 +490,22 @@ class Display
     puts "\e[H\e[2J"
   end
 
-  def print_rank(y, board, highlights)
+  def print_rank(y, board, highlights, selected)
     print "\t#{y + 1} "
     0.upto(7) do |x|
       square_contents = board.lookup_square([x, y])
       symbol = square_contents.eql?(:empty) ? "  " : "#{square_contents.symbol} "
-      colour_lambda = colour_picker(x, y, board, highlights)
+      colour_lambda = colour_picker(x, y, board, highlights, selected)
       colour_print = colour_lambda.call(x, symbol)
       print colour_print
     end
     puts " #{y + 1}"
   end
 
-  def colour_picker(x_value, y_value, board, highlights)
-    if highlights.member?([x_value, y_value]) && board.lookup_square([x_value, y_value]).is_a?(Piece)
+  def colour_picker(x_value, y_value, board, highlights, selected)
+    if selected.eql?([x_value, y_value])
+      ->(_x, str) { str.bg_selected }
+    elsif highlights.member?([x_value, y_value]) && board.lookup_square([x_value, y_value]).is_a?(Piece)
       ->(_x, str) { str.bg_threatened }
     elsif y_value.odd?
       odd_colour_picker(x_value, y_value, highlights)
