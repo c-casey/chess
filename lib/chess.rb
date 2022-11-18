@@ -5,12 +5,12 @@ require "msgpack"
 MessagePack::DefaultFactory.register_type(0x00, Symbol)
 
 class String
-  def bg_dark =       "\e[41m#{self}\e[0m"
-  def bg_light =      "\e[45m#{self}\e[0m"
-  def bg_dark_hl =    "\e[44m#{self}\e[0m"
-  def bg_light_hl =   "\e[46m#{self}\e[0m"
-  def bg_threatened = "\e[31m#{self}\e[0m"
-  def bg_selected =   "\e[7m#{self}\e[0m"
+  def bg_dark;        "\e[41m#{self}\e[0m" end
+  def bg_light;       "\e[45m#{self}\e[0m" end
+  def bg_dark_hl;     "\e[44m#{self}\e[0m" end
+  def bg_light_hl;    "\e[46m#{self}\e[0m" end
+  def bg_threatened;  "\e[31m#{self}\e[0m" end
+  def bg_selected;     "\e[7m#{self}\e[0m" end
 end
 
 class Chess
